@@ -388,21 +388,22 @@ plot.ddPCA_intervals <- function(x, type = "vertices", exp.factor=1.2, axis.pred
       graphics::lines (x = plot.data[i,c(1,3)], y = plot.data[i,c(2,4)], col = entity.aes$col[i],
                        lwd = entity.aes$lwd.vec[i] * entity.aes$lwd[i], lty = entity.aes$lty[i])
   }
-
-  ZZ <- ZZ[label.aes$shown,]
-  label.aes <- label.aes[label.aes$shown,]
+  show.labels <- interval.aes$label & label.aes$shown
+  ZZ <- ZZ[show.labels,]
+  label.aes <- label.aes[show.labels,]
+  if (nrow(label.aes) > 0)
   for (i in 1:nrow(label.aes))
-    {  text.pos <- match(label.aes$label.side[j], c("bottom", "left", "top", "right"))
-       if (label.aes$label.side[j] == "bottom") { Zx <- mean(ZZ[i,c(1,3)])
+    {  text.pos <- match(label.aes$label.side[i], c("bottom", "left", "top", "right"))
+       if (label.aes$label.side[i] == "bottom") { Zx <- mean(ZZ[i,c(1,3)])
                                                  Zy <- ZZ[i,2]
                                                }
-       if (label.aes$label.side[j] == "left") { Zx <- ZZ[i,1]
+       if (label.aes$label.side[i] == "left") { Zx <- ZZ[i,1]
                                                 Zy <- mean(ZZ[i,c(2,4)])
                                               }
-       if (label.aes$label.side[j] == "top") { Zx <- mean(ZZ[i,c(1,3)])
+       if (label.aes$label.side[i] == "top") { Zx <- mean(ZZ[i,c(1,3)])
                                                Zy <- ZZ[i,4]
                                              }
-       if (label.aes$label.side[j] == "right") { Zx <- ZZ[i,3]
+       if (label.aes$label.side[i] == "right") { Zx <- ZZ[i,3]
                                                  Zy <- mean(ZZ[i,c(2,4)])
                                                }
        if (label.aes$label[i])
