@@ -1,0 +1,452 @@
+---
+title: "DDbiplotEZ"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+
+bibliography: references.bib
+vignette: >
+  %\VignetteIndexEntry{DDbiplotEZ}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DDbiplotEZ)
+```
+
+# Distributional data
+
+The function `create.ddobj` creates an object of class `ddobj` from a dataframe. Included in the package is the dataframe `toy.data`.
+
+```{r, showData}
+toy.data
+```
+
+This data set consist of 5 different types of data:
+
+* X1 is a numeric variable.
+* X2 is an interval scaled variable - the endpoints of the intervals are given in the columns `X2` and `X2.up`. The intention is that the lower bounds appear in the first column and the upper bounds in the second. However, the function `create.ddobj` will reorder the values if they appear in the opposite order, such as for entities 4 and 5.
+* X3 is a histogram scaled variable - the first group of columns (`X3`, `X3.I1`, `X3.I2`, `X3.I3`, `X3.I4` in this case) contain the consecutive intervals, while the next group of columns (`X3.p1`, `X3.p2`, `X3.p3`, `X3.p4` for the `toy.data`) contain the proportions. If the number of intervals vary between entities, the latter columns of entities with fewer intervals should contain `NA`. The number of proportions specified, should agree with the number of intervals and the proportions must add up to 1.
+* X4 is a categorical (factor in `R`) variable.
+* X5 is a modal variable. The format is similar to that of histogram scaled variables where the first group of columns (`X5`, X5.c2`, `X5.c3` for our example) contains the categories and the latter group the proportions such as `X5.p1`, `X5.p2`, `X5.p3`.
+
+```{r, createData}
+out <- create.ddobj(toy.data, type=c("numeric","interval","histogram","categorical", "modal"),
+                    cols = c(1, 2, 4, 13, 14), n.int=4, n.cat=3)
+```
+
+In addition to specifying the dataframe and type of each variable, the first column for each variable needs to be specified, as well as the number of intervals for histogram scaled variables and the number of categories for modal variables. For multiple histogram scaled or modal variables this number will be a vector.
+
+The print method provides a summary of the `ddobj`.
+
+```{r, showPrint}
+print (out)
+```
+
+The function `suminto.ddobj` is used to summarise a (usually large) data set into a distributional data object. One such large data set is the `diamonds` data in the package `ggplot2`. 
+
+```{r, getDiamonds, echo=FALSE}
+if (!requireNamespace("ggplot2", quietly = TRUE)) {
+  stop("This vignette requires the 'ggplot2' package.")
+}
+
+data("diamonds", package = "ggplot2")
+```
+
+We can use the color-cut combinations as entities, to summarise carat and price as histogram scaled variables, depth and table as interval scaled variables and clarity as a modal variable.
+
+```{r, showSummarise}
+diamonds
+suminto.ddobj(diamonds, entities = c("color","cut"),
+              histogram = c("carat", "price"), interval = c("depth", "table"), modal = "clarity")
+```
+
+# Descriptive statistics
+
+First we will construct a small example data set with $n=3$ entities, to illustrate the computation of mean, variances and covariances. 
+
+```{r, makeEx_dat}
+temp <- cbind (X1 = c(1, 2, 3), X1.b = c(2, 4, 9),
+               X2 = c(3, 8, 5), X2.b = c(4, 8.5, 7),
+               X3 = c(0, 1, 0), X3.1 = c(0.5, 2, 1), X3.2 = c(1,3,2),
+               X3.p1 = c(0.3, 0.4, 0.6), X3.p2 = c(0.7, 0.6, 0.4),
+               X4 = c(0, 0, 0), X4.1 = c(1, 1, 1), X4.2 = c(2, 2, 2), X4.3 = c(3, 3, 3),
+               X4.p1 = c(0.3, 0.1, 0.7), X4.p2 = c(0.2, 0.6, 0.2), X4.p3 = c(0.5, 0.3, 0.1))
+rownames(temp) <- c("A", "B", "C")
+ex.dat <- create.ddobj(temp, types = c("interval", "interval", "histogram", "histogram"),
+                             cols  = c(    1,          3,           5,           10), n.int=2:3)
+ex.dat
+```
+
+## Interval scaled variables
+
+### Sample mean
+
+$$
+\bar{Z} = \frac{1}{2n} \sum_{i=1}^{n}(b_i + a_i)
+$$
+where $a_i$ is the lower endpoint and $b_i$ is the upper endpoint of the interval for entity $i$.
+
+As an example, we can compute the sample mean of variable $X_1$.
+
+$$
+\begin{bmatrix}
+\begin{bmatrix} 1, & 2 \end{bmatrix}\\
+\begin{bmatrix} 2, & 4 \end{bmatrix}\\
+\begin{bmatrix} 3, & 9 \end{bmatrix} 
+\end{bmatrix}
+$$
+
+$$
+\bar{X}_1 = \frac{(2+1) + (4+2) + (9+3)}{2 \times 3} = 3.5
+$$
+```{r, X1_mean}
+ddmean(ex.dat$X1)
+```
+
+### Sample variance
+
+$$
+S^2 = \frac{1}{3n} \sum_{i=1}^{n}(b_i^2 + b_ia_i + a_i^2) - \bar{Z}^2
+$$
+
+In the example below, we compute the sample variance of variable $X_2$.
+
+$$
+\begin{bmatrix}
+\begin{bmatrix} 3, & 4 \end{bmatrix}\\
+\begin{bmatrix} 8, & 8.5 \end{bmatrix}\\
+\begin{bmatrix} 5, & 7 \end{bmatrix} 
+\end{bmatrix}
+$$
+$$
+\bar{X}_2 = 5.916667
+$$
+$$
+S^2 = \frac{(4^2 + (4)(3) + 3^2) + (8.5^2 + (8.5)(8) + 8^2) + (7^2 + (7)(5) + 5^2)}{3 \times 3} - (5.916667)^2
+$$
+
+$$
+= \frac{37 + 204.25 + 109}{9} - 35.0070 = 3.9097
+$$
+
+
+```{r, X2_var, error = FALSE}
+ddvar(ex.dat$X2)
+```
+
+### Sample covariance
+
+$$
+cov(Z_j,Z_k) = \frac{1}{4n} \sum_{i=1}^{n}(b_{ij}+a_{ij})(b_{ik}+a_{ik}) - \bar{Z}_j\bar{Z}_k
+$$
+
+The covariance of $X_1$ and $X_2$ is computed below.
+
+$$
+\begin{bmatrix}
+\begin{bmatrix} 1 & 2 \end{bmatrix} & \begin{bmatrix} 3 & 4 \end{bmatrix} \\
+\begin{bmatrix} 2 & 4 \end{bmatrix} & \begin{bmatrix} 8 & 8.5 \end{bmatrix} \\
+\begin{bmatrix} 3 & 9 \end{bmatrix} & \begin{bmatrix} 5 & 7 \end{bmatrix} 
+\end{bmatrix}
+$$
+
+$$
+\bar{X}_1 = 3.5, \hspace{1cm} \bar{X}_2 = 5.916667
+$$
+$$
+cov(X_1,X_2) = \frac{(2+1)(4+3) + (4+2)(8.5+8) + (9+3)(7+5) }{4 \times 3} - (3.5)(5.916667)
+$$
+$$
+= \frac{21 + 99 + 144}{12} - 20.7083 = 1.2917
+$$
+
+
+```{r, X1_X2_cov, error = FALSE}
+ddcov(ex.dat$X1, ex.dat$X2)
+ddvar(ex.dat$X1, ex.dat$X2)
+```
+
+Calling the `ddvar()` function with two arguments is equivalent to calling the function `ddcov()`.
+
+## Histogram scaled variables
+
+### Sample mean
+
+$$
+\bar{Z} = \frac{1}{2n} \sum_{i=1}^{n}\left[ \sum_{h=1}^{s_h}{(b_{ih} + a_{ih})p_{ih}} \right]
+$$
+where $a_{ih}$ is the lower endpoint of the $h$th bin and $b_{ih}$ is the upper endpoint of the $h$th bin for the histogram of entity $i$. The proportion of observations in bin $[a_{ih},b_{ih}]$ is $p_{ih}$ with a total of $s_h$ bins for the histogram of the variable.
+
+As an example, we can compute the sample mean of variable $X_4$.
+
+$$
+\begin{bmatrix}
+\begin{bmatrix} 0, & 1 \end{bmatrix}, 0.3; & \begin{bmatrix} 1, & 2 \end{bmatrix}, 0.2; &   \begin{bmatrix} 2, & 3 \end{bmatrix}, 0.5\\
+\begin{bmatrix} 0, & 1 \end{bmatrix}, 0.1; & \begin{bmatrix} 1, & 2 \end{bmatrix}, 0.6, & \begin{bmatrix} 2, & 3 \end{bmatrix}, 0.3\\
+\begin{bmatrix} 0, & 1 \end{bmatrix}, 0.7; & \begin{bmatrix} 1, & 2 \end{bmatrix}, 0.2; & \begin{bmatrix} 2, & 3 \end{bmatrix}, 0.1
+\end{bmatrix}
+$$
+
+$$
+\bar{X}_4= \frac{(0+1)0.3 + (1+2)0.2 + (2+3)0.5}{2 \times 3} + \frac{(0+1)0.1 + (1+2)0.6 + (2+3)0.3}{2 \times 3}
+$$
+$$
+ + \frac{(0+1)0.7 + (1+2)0.2 + (2+3)0.1}{2 \times 3}
+ $$
+
+$$
+= \frac{0.3+0.6+2.5}{6} + \frac{0.1+1.8+1.5}{6} + \frac{0.7+0.6+0.5}{6} = 1.433
+$$
+
+```{r, X4_mean}
+ddmean(ex.dat$X4)
+```
+
+### Sample variance
+
+$$
+S^2 = \frac{1}{3n} \sum_{i=1}^{n}\left[ \sum_{h=1}^{s_h}{(b_{ih}^2 + b_{ih}a_{ih} + a_{ih}^2)p_{ih}} \right] - \bar{Z}^2
+$$
+
+We can compute the sample variance of variable $X_3$ with sample mean $\bar{X}_3 = 1.2$.
+
+$$
+\begin{bmatrix}
+\begin{bmatrix} 0, & 0.5 \end{bmatrix}, 0.3; & \begin{bmatrix} 0.5, & 1 \end{bmatrix}, 0.7\\
+\begin{bmatrix} 1, & 2 \end{bmatrix}, 0.4; & \begin{bmatrix} 2, & 3 \end{bmatrix}, 0.6\\
+\begin{bmatrix} 0, & 1 \end{bmatrix}, 0.6; & \begin{bmatrix} 1, & 2 \end{bmatrix}, 0.4; 
+\end{bmatrix}
+$$
+
+$$
+S^2= \frac{(0+0+0.25)0.3 + (0.25+0.5+1)0.7}{3 \times 3} + \frac{(1+2+4)0.4 + (4+6+9)0.6}{3 \times 3} 
+$$
+$$
++ \frac{(0+0+1)0.6 + (1+2+4)0.4}{3 \times 3} - 1.2^2$$
+
+$$
+= \frac{0.075+1.225}{9} + \frac{2.8+11.4}{9} + \frac{0.6+2.8}{9} - 1.44 = 0.66
+$$
+
+```{r, X3_var}
+ddvar(ex.dat$X3)
+```
+
+### Sample covariance
+
+$$
+cov(Z_j,Z_k) = \frac{1}{4n} \sum_{i=1}^{n}\left[ \sum_{h=1}^{s_h}\sum_{l=1}^{s_l}{p_{ijh}}p_{ikl}(b_{ijh}+a_{ijh})(b_{ikl}+a_{ikl}) \right] - \bar{Z}_j\bar{Z}_k
+$$
+
+The sample covariance of variables $X_3$ and $X_4$ is computed below.
+
+$$
+\begin{bmatrix}
+\begin{bmatrix} 0, & 0.5 \end{bmatrix}, 0.3; & \begin{bmatrix} 0.5, & 1 \end{bmatrix}, 0.7\\
+\begin{bmatrix} 1, & 2 \end{bmatrix}, 0.4; & \begin{bmatrix} 2, & 3 \end{bmatrix}, 0.6\\
+\begin{bmatrix} 0, & 1 \end{bmatrix}, 0.6; & \begin{bmatrix} 1, & 2 \end{bmatrix}, 0.4; 
+\end{bmatrix}
+\&
+\begin{bmatrix}
+\begin{bmatrix} 0, & 1 \end{bmatrix}, 0.3; & \begin{bmatrix} 1, & 2 \end{bmatrix}, 0.2; &   \begin{bmatrix} 2, & 3 \end{bmatrix}, 0.5\\
+\begin{bmatrix} 0, & 1 \end{bmatrix}, 0.1; & \begin{bmatrix} 1, & 2 \end{bmatrix}, 0.6, & \begin{bmatrix} 2, & 3 \end{bmatrix}, 0.3\\
+\begin{bmatrix} 0, & 1 \end{bmatrix}, 0.7; & \begin{bmatrix} 1, & 2 \end{bmatrix}, 0.2; & \begin{bmatrix} 2, & 3 \end{bmatrix}, 0.1, 
+\end{bmatrix}
+$$
+
+$$
+cov(X_3,X4) = \frac{\sum_{h=1}^{2}\sum_{l=1}^{3}{\sum_{i=1}^{3}{p_{i3h}p_{i4l}(b_{i3h}+a_{i3h})(b_{i4l}+a_{i4l})}}}{4 \times 3} - \bar{X}_3\bar{X}_4
+$$
+Define
+$$
+q_{hl} = \sum_{i=1}^{3}{p_{i3h}p_{i4l}(b_{i3h}+a_{i3h})(b_{i4l}+a_{i4l})} 
+$$
+then
+
+$$
+cov(X_3,X4) = \frac{\sum_{h=1}^{2}\sum_{l=1}^{3}{q_{hl}}}{12} - - (1.2^2)(1.433^2)
+$$
+where
+
+$$
+\mathbf{Q} = 
+\begin{bmatrix} p_{131}(b_{131}+a_{131}) & p_{231}(b_{231}+a_{231}) & p_{331}(b_{331}+a_{331})\\
+                p_{132}(b_{132}+a_{132}) & p_{232}(b_{232}+a_{232}) & p_{332}(b_{332}+a_{332})
+\end{bmatrix}
+\begin{bmatrix} p_{141}(b_{141}+a_{141}) & p_{142}(b_{142}+a_{142}) & p_{143}(b_{143}+a_{143})\\
+                p_{241}(b_{241}+a_{241}) & p_{242}(b_{242}+a_{242}) & p_{243}(b_{243}+a_{243})\\
+                p_{341}(b_{341}+a_{341}) & p_{342}(b_{342}+a_{342}) & p_{343}(b_{343}+a_{343})
+\end{bmatrix}
+$$
+$$
+=   \begin{bmatrix} (0.3)(0.5+0) & (0.4)(2+1) & (0.6)(1+0)\\
+                    (0.7)(1+0.5) & (0.6)(3+2) & (0.4)(2+1)
+    \end{bmatrix}
+    \begin{bmatrix} (0.3)(1+0) & (0.2)(2+1) & (0.5)(3+2)\\
+                    (0.1)(1+0) & (0.6)(2+1) & (0.3)(3+2)\\
+                    (0.7)(1+0) & (0.2)(2+1) & (0.1)(3+2))
+    \end{bmatrix}
+$$
+$$
+=   \begin{bmatrix} 0.15  & 1.2 & 0.6\\
+                    1.05 & 3.0 & 1.2
+    \end{bmatrix}
+    \begin{bmatrix} 0.3 & 0.6 & 2.5\\
+                    0.1 & 1.8 & 1.5\\
+                    0.7 & 0.6 & 0.5
+    \end{bmatrix}
+$$
+
+$$
+=   \begin{bmatrix} 0.585  & 2.61 & 2.475\\
+                    1.455 & 6.75 & 7.725
+    \end{bmatrix}
+$$
+$$
+cov(X_3,X4) = \frac{0.585+1.455+2.61+6.75+2.475+7.725}{12} - (1.2)(1.433) = 0.080
+$$
+```{r, X3_X4_cov}
+ddvar(ex.dat$X3, ex.dat$X4)
+ddcov(ex.dat$X3, ex.dat$X4)
+```
+
+To compute the covariance between an interval scaled variable and a histogram scaled variable, the interval scaled variable is rewritten as a histogram scaled variable with one bin for each variable and proportions of 1. Below we compute the covariance of $X_1$ and $X_4$.
+
+$$
+\begin{bmatrix}
+\begin{bmatrix} 1, & 2 \end{bmatrix}, 1\\
+\begin{bmatrix} 2, & 4 \end{bmatrix}, 1\\
+\begin{bmatrix} 3, & 9 \end{bmatrix}, 1; 
+\end{bmatrix}
+\&
+\begin{bmatrix}
+\begin{bmatrix} 0, & 1 \end{bmatrix}, 0.3; & \begin{bmatrix} 1, & 2 \end{bmatrix}, 0.2; &   \begin{bmatrix} 2, & 3 \end{bmatrix}, 0.5\\
+\begin{bmatrix} 0, & 1 \end{bmatrix}, 0.1; & \begin{bmatrix} 1, & 2 \end{bmatrix}, 0.6, & \begin{bmatrix} 2, & 3 \end{bmatrix}, 0.3\\
+\begin{bmatrix} 0, & 1 \end{bmatrix}, 0.7; & \begin{bmatrix} 1, & 2 \end{bmatrix}, 0.2; & \begin{bmatrix} 2, & 3 \end{bmatrix}, 0.1, 
+\end{bmatrix}
+$$
+
+```{r, X1_X4_cov}
+ddvar(ex.dat$X1, ex.dat$X4)
+```
+
+Unlike the function `var()` which accepts a matrix of variables to compute a covariance matrix, the `ddvar()` function only computes a single numeric variance or covariance value. The function `ddcovmat()` computes a covariance matrix.
+
+```{r, covarianceMatrix}
+ddcovmat(ex.dat)
+```
+
+## Correlation
+
+Once the covariance and variance for interval scaled and histogram scaled variables have been defined, the correlation is computed as usual $cor(x,y) = \frac{cov(x,y)}{s_xs_y}$.
+
+```{r, correlationMatrix}
+ddcor (ex.dat$X2, ex.dat$X3)
+ddcormat(ex.dat)
+```
+
+# Distances
+
+To compute pairwise distances between entities, the $l_2$ Wasserstein distance is used, as described in @IrpinoVerde2015. The function `sq.L2.Wass_dist()` computes the squared $l_2$ Wasserstein distance. It makes used of the function `WassSqDistH()` in the R package `HistDAWass` to compute the squared $l_2$ Wasserstein distance between two entities on a histogram scaled variable. Interval scaled variables are converted to histogram scaled variables with a single bin and proportion one, while numeric variables are first converted to interval scaled variables with identical lower and upper interval endpoints, before being converted to histogram scaled variables.
+
+The squared distances are summed over the $p$ variables, to obtain the squared distance between a pair of entities.
+
+```{r, distMatrix}
+Dsq <- sq.L2.Wass_dist(ex.dat)
+Dmat <- sqrt(Dsq)
+Dmat
+```
+
+# The function `ddbiplot()`
+
+This function creates an object of class `ddbiplot`. The input is a `ddobj` with a series of optional arguments for grouping entities, centering and scaling as well as providing a title for the plot.
+
+The function prepares the `ddobj` for creating biplots. The numeric part with `numeric`, `interval` and `histogram` variables are returned in a component `X` with the required centring and scaling performed. If there are missing observations, these are removed entity-wise with a warning to the user while the numbers of the entities removed $(1, \dots, n)$ is returned in the `na.action` component.
+
+# PCA biplots
+
+## PCA biplots for interval scaled data
+
+The Oils data set (@Ichino1988) on $n=8$ entities for 4 interval scaled and 1 numeric variable is included in the `DDbiplotEZ` package. 
+
+```{r, showOils}
+Oils.data
+```
+
+When the function `PCA()` is called, the numeric variable is converted to an interval scaled variable with $x^l_i = x^u_i$ so that $p=5$ variables are represented.
+
+### PCA biplot with interval scaled data represented as intervals
+
+In the PCA biplot, each entity is represented by $p$ intervals, one for each of the original interval scaled variables. Note that short intervals appear as 'dots' in the centroid of the entity representation.
+
+```{r, PCA_Oils_intervals, fig.height=6, fig.width=7}
+ddbiplot(Oils.data, scaled = TRUE) |> PCA() |> biplotEZ::axes (label.dir = "Hor") |>
+  plot (type = "intervals")
+```
+
+### PCA biplot with interval scaled data represented as vertices
+
+An alternative representation of an entity in the lower dimensional biplot space is obtained by first creating a $2^p \times p$ vertices matrix for each entity. The entire $2^pn \times p$ matrix is projected onto the biplot space. A single entity is either represented by connecting lines which formed the $p$-dimensional hypercube in the original space, or a convex hull around the vertices of each entity.
+
+```{r, PCA_Oils_vertices, fig.height=6, fig.width=7}
+ddbiplot (Oils.data, scale = TRUE) |> PCA() |> biplotEZ::axes (label.dir = "Hor") |>
+  vertices (type = "connect") |> plot (type = "vertices")
+ddbiplot (Oils.data, scaled = TRUE) |> PCA() |> biplotEZ::axes (label.dir = "Hor") |>
+  plot (type = "vertices")
+```
+
+### Aesthetics of the entities in the PCA biplot
+
+The functions `intervals()` and `vertices()` allow the user to choose the aesthetics for the entities in the PCA biplot. The following options are available:
+
+* `which` of the groups defined by `classes` or `group.aes` in `PCA()` to show in the biplot.
+* `col` the colour for representing entities.
+* `pch` [only for `vertices()`] the plotting character for representing vertices.
+* `cex` [only for `vertices()`] the character expansion of the vertices plotting character.
+* `lwd` the line width for interval representation / convex hull / connecting lines.
+* `lty` the line type for interval representation / convex hull / connecting lines.
+* `label` whether the entities should be labelled.
+* `label.name` names for the entities.
+* `label.col` colour for entity labels.
+* `label.cex` character expansion for entity labels.
+* `label.side` one of `bottom`, `left`, `top` or `right` for placing the entity labels.
+* `label.offset` how far away the entity labels should be positioned.
+* `type` either `"convexhull"` or `"connect"`.
+
+The arguments `col`, `pch`, `cex`, `lwd` and `lty` are typically vectors with length equal to the number of groups specified. The argument `label` is a single `TRUE` or `FALSE` while the other arguments related to the labels are typically vectors of length $n$. For all these vectors recycling is used to ensure the correct length.
+
+```{r, PCAint_aesthetics, fig.height=6, fig.width=7}
+ddbiplot(Oils.data, scaled = TRUE) |> PCA(group.aes = c(1,1,1,1,2,2,2,2)) |>
+  biplotEZ::axes (label.dir = "Hor") |>
+  intervals(col = c("cyan","magenta"), label = TRUE) |> plot (type = "intervals")
+ddbiplot (Oils.data, scaled = TRUE) |> PCA() |> biplotEZ::axes (label.dir = "Hor") |>
+  vertices (type = "connect", lty = 2) |> plot (type = "vertices")
+ddbiplot (Oils.data, scaled = TRUE) |> PCA() |> biplotEZ::axes (label.dir = "Hor") |>
+  vertices (pch=15, cex=0.6, label = TRUE, label.side = "right") |>
+  plot (type = "vertices")
+```
+
+### More aesthetics from package `biplotEZ`
+
+The aesthetics of the biplot axes are set with the function `axes()` from `biplotEZ`. Similarly a legend is added with the `legend.type(samples = TRUE)` function.
+
+```{r, PCAint_more_aes, fig.height=6, fig.width=7}
+ddbiplot (Oils.data, scaled = TRUE) |> 
+  PCA(group.aes = c("Linseed", "Perilla", "Cotton", "Sesame", "Cmellia", "Olive",
+                    "Beef", "Hog")) |> 
+  biplotEZ::axes (label.dir = "Hor") |>  
+  vertices (type = "connect") |>
+  biplotEZ::legend.type (samples = TRUE) |> plot ()
+```
+
+# References
