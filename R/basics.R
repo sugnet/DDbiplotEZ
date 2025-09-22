@@ -18,7 +18,7 @@
 create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
 {
   df <- as.data.frame(df)
-  entity.names <- rownames(df)
+  unit.names <- rownames(df)
   if (is.null(types))
   {  types <- c("categorical","numeric")[as.numeric(sapply (df, is.numeric))+1]
      cols <- 1:ncol(df)
@@ -64,7 +64,7 @@ create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
     if (types[j] == "numeric" | types[j] == "categorical")
     {
       new.var <- df[,current]
-      names(new.var) <- entity.names
+      names(new.var) <- unit.names
       new.var <- list (c("categorical","numeric")[is.numeric(new.var)+1], new.var)
       new.var.names <- c("type","values")
 
@@ -78,7 +78,7 @@ create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
     {
       mat <- df[,(0:1)+current]
       mat <- t(apply (mat, 1, sort))
-      rownames(mat) <- entity.names
+      rownames(mat) <- unit.names
       colnames(mat) <- c("lower","upper")
       new.var <- list ("interval", mat)
       new.var.names <- c("type","values")
@@ -96,17 +96,17 @@ create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
       probs <- df[,(1:hist.n.int[j])+hist.n.int[j]+current]
 
       my.check <- apply (intervals, 1, function(x)all(order(x) == 1:length(x)))
-      if (any(!my.check)) stop (paste("Histogram intervals for", entity.names[!my.check],
+      if (any(!my.check)) stop (paste("Histogram intervals for", unit.names[!my.check],
                                       "not in increasing order.\n"))
       my.check <- (apply (probs, 1, sum, na.rm = TRUE) == 1)
-      if (any(!my.check)) stop (paste("Histogram proportions for", entity.names[!my.check],
+      if (any(!my.check)) stop (paste("Histogram proportions for", unit.names[!my.check],
                                       "do not add up to 1.\n"))
       for (i in 1:nrow(probs))
         if (sum(probs[i,1:(length(intervals[i,!is.na(intervals[i,])])-1)]) != 1)
-          stop (paste("Histogram proportions for", entity.names[i],
+          stop (paste("Histogram proportions for", unit.names[i],
                       "correspond with NA intervals.\n"))
 
-      rownames(probs) <- entity.names
+      rownames(probs) <- unit.names
       new.var <- list ("histogram", intervals, probs)
       new.var.names <- c("type","intervals","proportions")
 
@@ -124,14 +124,14 @@ create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
       probs <- df[,(0:(modal.n.cat[j]-1))+modal.n.cat[j]+current]
 
       my.check <- (apply (probs, 1, sum, na.rm = TRUE) == 1)
-      if (any(!my.check)) stop (paste("Modal proportions for", entity.names[!my.check],
+      if (any(!my.check)) stop (paste("Modal proportions for", unit.names[!my.check],
                                       "do not add up to 1.\n"))
       for (i in 1:nrow(probs))
         if (sum(probs[i,1:(length(cats[i,!is.na(cats[i,])]))]) != 1)
-          stop (paste("Modal proportions for", entity.names[i],
+          stop (paste("Modal proportions for", unit.names[i],
                       "correspond with NA categories.\n"))
 
-      rownames(probs) <- entity.names
+      rownames(probs) <- unit.names
       new.var <- list ("modal", cats, probs)
       new.var.names <- c("type","categories","proportions")
 
@@ -170,14 +170,17 @@ create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
 #'
 print.ddobj <- function (x, ...)
 {
-  n <- switch(x[[1]]$type,
-              numeric = length(x[[1]]$values),
-              interval = nrow(x[[1]]$values),
-              histogram = nrow(x[[1]]$intervals),
-              categorical = length(x[[1]]$values),
-              modal = length(x[[1]]$cats))
-  cat ("An object of class ddobj with", n, "entities containing", length(x),
-       "distributional data variables.\n")
+  unit.names <- switch(x[[1]]$type,
+                         numeric = names(x[[1]]$values),
+                         interval = rownames(x[[1]]$values),
+                         histogram = rownames(x[[1]]$intervals),
+                         categorical = names(x[[1]]$values),
+                         modal = names(x[[1]]$cats))
+  n <- length(unit.names)
+
+  cat ("An object of class ddobj with", n, "units\n")
+  print (unit.names)
+  cat ("\n  containing", length(x), "distributional data variables.\n")
 
   for (j in 1:length(x))
   {
@@ -225,7 +228,7 @@ print.ddobj <- function (x, ...)
 #' Summarise a data set into a distributional data object
 #'
 #' @param df data frame from which the \code{ddobj} object is created
-#' @param entities the column names that will form the entities
+#' @param units the column names that will form the units
 #' @param interval the column names that will be summarised into interval scaled data
 #' @param histogram the column names that will be summarised into histogram scaled data
 #' @param modal the column names that will be summarised into modal data
@@ -233,31 +236,31 @@ print.ddobj <- function (x, ...)
 #' @returns and object of class \code{ddobj}
 #' @export
 #'
-#' @usage suminto.ddobj(df, entities = names(df)[1],
+#' @usage suminto.ddobj(df, units = names(df)[1],
 #'                      interval=NULL, histogram=NULL, modal=NULL)
 #'
 #' @examples
-#' suminto.ddobj (esoph, entities = "agegp", interval="ncases",
+#' suminto.ddobj (esoph, units = "agegp", interval="ncases",
 #'                histogram="ncontrols", modal=c("alcgp","tobgp"))
 #'
-suminto.ddobj <- function (df, entities = names(df)[1],
+suminto.ddobj <- function (df, units = names(df)[1],
                            interval=NULL, histogram=NULL, modal=NULL)
 {
   df <- as.data.frame(df)
   obj <- vector("list", 0)
 
-  which.cols <- stats::na.omit(match(entities, colnames(df)))
-  if (length(which.cols) > 1) entities.vals <- apply(df[,which.cols],1,paste,collapse="_")
-  else entities.vals <- df[,which.cols]
-  if (length(entities.vals) == 0) stop ("entities misspecified")
+  which.cols <- stats::na.omit(match(units, colnames(df)))
+  if (length(which.cols) > 1) units.vals <- apply(df[,which.cols],1,paste,collapse="_")
+  else units.vals <- df[,which.cols]
+  if (length(units.vals) == 0) stop ("units misspecified")
 
-  entities <- levels(factor(entities.vals))
+  units <- levels(factor(units.vals))
 
   if (!is.null(interval))
     for (j in 1:length(interval))
     {
       this.col <- match(interval[j], colnames(df))
-      mat <- t(sapply(tapply(df[,this.col], entities.vals, range), function(x)x))
+      mat <- t(sapply(tapply(df[,this.col], units.vals, range), function(x)x))
       colnames(mat) <- c("lower","upper")
       new.var <- list ("interval", mat)
       new.var.names <- c("type","values")
@@ -269,7 +272,7 @@ suminto.ddobj <- function (df, entities = names(df)[1],
     for (j in 1:length(histogram))
     {
       this.col <- match(histogram[j], colnames(df))
-      out <- tapply(df[,this.col], entities.vals, graphics::hist, breaks = 5, plot = FALSE)
+      out <- tapply(df[,this.col], units.vals, graphics::hist, breaks = 5, plot = FALSE)
       nums <- sapply(out, function(x)length(x$counts))
       num <- max(nums)
       intervals <- t(sapply(out, function(x)c(x$breaks, rep(NA,num-length(x$breaks)+1))))
@@ -284,7 +287,7 @@ suminto.ddobj <- function (df, entities = names(df)[1],
     for (j in 1:length(modal))
     {
       this.col <- match(modal[j], colnames(df))
-      out <- tapply(df[,this.col], entities.vals, table)
+      out <- tapply(df[,this.col], units.vals, table)
       nums <- sapply(out, function(x)length(x))
       num <- max(nums)
       cats <- t(sapply(out, function(x)c(names(x), rep(NA,num-length(x)))))
@@ -309,16 +312,16 @@ suminto.ddobj <- function (df, entities = names(df)[1],
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 #' int.to.hist (obj$ncases)
 #'
 int.to.hist <- function (x)
 {
-  entity.names <- rownames(x$values)
+  unit.names <- rownames(x$values)
   x <- list(type = "histogram",
             intervals = x$values,
             proportions = matrix(1,nrow=nrow(x$values), ncol=1))
-  rownames(x$intervals) <- rownames(x$proportions) <- entity.names
+  rownames(x$intervals) <- rownames(x$proportions) <- unit.names
   x
 }
 
@@ -334,10 +337,10 @@ int.to.hist <- function (x)
 #'
 num.to.int <- function (x)
 {
-  entity.names <- names(x$values)
+  unit.names <- names(x$values)
   x <- list(type = "interval",
             values = cbind(x$values, x$values))
-  rownames(x$values) <- entity.names
+  rownames(x$values) <- unit.names
   x
 }
 
@@ -350,7 +353,7 @@ num.to.int <- function (x)
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 #' sq.L2.Wass_dist(obj)
 #'
 sq.L2.Wass_dist <- function (obj)
@@ -368,7 +371,7 @@ sq.L2.Wass_dist <- function (obj)
           numeric = length(obj[[1]]$values),
           interval = nrow(obj[[1]]$values),
           histogram = nrow(obj[[1]]$intervals))
-  entity.names <- switch(obj[[1]]$type,
+  unit.names <- switch(obj[[1]]$type,
                          numeric = names(obj[[1]]$values),
                          interval = rownames(obj[[1]]$values),
                          histogram = rownames(obj[[1]]$intervals))
@@ -389,14 +392,14 @@ sq.L2.Wass_dist <- function (obj)
   }
 
   Dmat <- Dmat + t(Dmat)
-  rownames(Dmat) <- colnames(Dmat) <- entity.names
+  rownames(Dmat) <- colnames(Dmat) <- unit.names
   Dmat
 }
 
 #' Create a vertices matrix from interval scaled data
 #'
 #' @param obj an object of class \code{ddobj}
-#' @param i number of the entity for which the vertices matrix is computed
+#' @param i number of the unit for which the vertices matrix is computed
 #' @param connect logical argument indicating whether connections between vertices should be
 #'                computed. Note this requires evaluating (2^p) chose 2 possible connections
 #'
@@ -409,7 +412,7 @@ sq.L2.Wass_dist <- function (obj)
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, entities = "agegp", interval=c("ncases","ncontrols"))
+#' obj <- suminto.ddobj (esoph, units = "agegp", interval=c("ncases","ncontrols"))
 #' create.vertices (obj, 1)
 #'
 create.vertices <- function (obj, i, connect=FALSE)

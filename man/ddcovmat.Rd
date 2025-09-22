@@ -16,6 +16,6 @@ a covariance matrix of size length of obj by length of obj
 Computes the covariance matrix of distributional data variables
 }
 \examples{
-obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 ddcovmat (obj)
 }

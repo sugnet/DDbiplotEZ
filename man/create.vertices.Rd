@@ -9,7 +9,7 @@ create.vertices(obj, i, connect = FALSE)
 \arguments{
 \item{obj}{an object of class \code{ddobj}}
 
-\item{i}{number of the entity for which the vertices matrix is computed}
+\item{i}{number of the unit for which the vertices matrix is computed}
 
 \item{connect}{logical argument indicating whether connections between vertices should be
 computed. Note this requires evaluating (2^p) chose 2 possible connections}
@@ -25,7 +25,7 @@ a list with two components:
 Create a vertices matrix from interval scaled data
 }
 \examples{
-obj <- suminto.ddobj (esoph, entities = "agegp", interval=c("ncases","ncontrols"))
+obj <- suminto.ddobj (esoph, units = "agegp", interval=c("ncases","ncontrols"))
 create.vertices (obj, 1)
 
 }

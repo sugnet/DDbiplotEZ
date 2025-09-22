@@ -29,7 +29,7 @@ displayed, with default \code{bp$g}.}
 \code{FALSE}.}
 
 \item{label.name}{a vector of the same length as \code{which} with label names for the vertices,
-with default \code{NULL}. If \code{NULL}, the rownames of the entities are
+with default \code{NULL}. If \code{NULL}, the rownames of the units are
 used. Alternatively, a custom vector of length \code{n} should be used.}
 
 \item{label.col}{a vector of the same length as \code{which} with label colours for the vertices,
@@ -38,7 +38,7 @@ with default as the same colour of the vertices.}
 \item{label.cex}{a vector of the same length as \code{which} with label text expansions for the
 vertices, with default \code{0.3}.}
 
-\item{label.side}{the side at which the label of the entity appears, with default
+\item{label.side}{the side at which the label of the unit appears, with default
 \code{bottom}. Note that unlike the argument \code{pos} in \code{text()},
 options are "\code{bottom}", "\code{left}", "\code{top}", "\code{right}" and
 not \code{1}, \code{2}, \code{3}, \code{4}.}
@@ -68,7 +68,7 @@ The object of class \code{ddbiplot} will be appended with a list called \code{ve
 \item{type}{either \code{"convexhull"} or \code{"connect"}}
 }
 \description{
-This function allows the user to format the aesthetics for the entities.
+This function allows the user to format the aesthetics for the units.
 }
 \examples{
 ddbiplot(data = Oils.data) |> PCA() |> vertices(col="purple",lwd=2, label = TRUE) |> plot()

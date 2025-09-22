@@ -57,7 +57,7 @@ The object of class \code{ddbiplot} will be appended with a list called \code{in
 \item{label.offset}{the offset of the label from the plotted intervals.}
 }
 \description{
-This function allows the user to format the aesthetics for the entities.
+This function allows the user to format the aesthetics for the units.
 }
 \examples{
 ddbiplot(data = Oils.data) |> PCA() |> intervals(col="purple",lwd=2, label = TRUE) |> plot()

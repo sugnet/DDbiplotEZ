@@ -2,7 +2,7 @@
 #' Format aesthetics for intervals
 #'
 #' @description
-#' This function allows the user to format the aesthetics for the entities.
+#' This function allows the user to format the aesthetics for the units.
 #'
 #' @param bp an object of class \code{ddbiplot}.
 #' @param which a vector containing the groups or classes for which the intervals should be
@@ -147,7 +147,7 @@ intervals <- function (bp,  which = 1:bp$g, col = biplotEZ:::ez.col, lwd = 1, lt
 #' Format aesthetics for vertices representation
 #'
 #' @description
-#' This function allows the user to format the aesthetics for the entities.
+#' This function allows the user to format the aesthetics for the units.
 #'
 #' @param bp an object of class \code{ddbiplot}.
 #' @param which a vector containing the groups or classes for which the vertices should be
@@ -160,13 +160,13 @@ intervals <- function (bp,  which = 1:bp$g, col = biplotEZ:::ez.col, lwd = 1, lt
 #' @param label a logical value indicating whether the vertices should be labelled, with default
 #'              \code{FALSE}.
 #' @param label.name a vector of the same length as \code{which} with label names for the vertices,
-#'                   with default \code{NULL}. If \code{NULL}, the rownames of the entities are
+#'                   with default \code{NULL}. If \code{NULL}, the rownames of the units are
 #'                   used. Alternatively, a custom vector of length \code{n} should be used.
 #' @param label.col a vector of the same length as \code{which} with label colours for the vertices,
 #'                  with default as the same colour of the vertices.
 #' @param label.cex a vector of the same length as \code{which} with label text expansions for the
 #'                  vertices, with default \code{0.3}.
-#' @param label.side the side at which the label of the entity appears, with default
+#' @param label.side the side at which the label of the unit appears, with default
 #'                   \code{bottom}. Note that unlike the argument \code{pos} in \code{text()},
 #'                   options are "\code{bottom}", "\code{left}", "\code{top}", "\code{right}" and
 #'                   not \code{1}, \code{2}, \code{3}, \code{4}.

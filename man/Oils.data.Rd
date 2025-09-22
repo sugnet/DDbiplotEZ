@@ -13,7 +13,7 @@ An object of class \code{ddobj}. A list of length 5:
   \item{Freezing.point}{interval scaled variable}
   \item{Iodine.value}{interval scaled variable}
   \item{Saponification}{interval scaled variable}
-  \item{SO.LDP}{numeric variable}
+  \item{Fatty.acids}{numeric variable}
   }
 
   "Oils.data"
@@ -22,6 +22,6 @@ An object of class \code{ddobj}. A list of length 5:
 Oils.data
 }
 \description{
-A data set containing 8 entities with four interval scaled variables and one numeric variable.
+A data set containing 8 units with four interval scaled variables and one numeric variable.
 }
 \keyword{datasets}

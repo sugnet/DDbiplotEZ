@@ -16,7 +16,7 @@ a symmetric matrix of squared distances
 Computes the squared l2 Wasserstein distance
 }
 \examples{
-obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 sq.L2.Wass_dist(obj)
 
 }

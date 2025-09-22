@@ -18,6 +18,6 @@ numeric correlation value
 Computes the correlation of two distributional data objects
 }
 \examples{
-obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 ddcor (obj$ncases, obj$ncontrols)
 }

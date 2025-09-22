@@ -18,7 +18,7 @@ Converts an interval scaled variable to a histogram scaled variable with a singl
 proportion one
 }
 \examples{
-obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 int.to.hist (obj$ncases)
 
 }

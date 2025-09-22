@@ -18,6 +18,8 @@ biplotEZ::PCA
 #'                           optimally approximated in the biplot. If \code{TRUE}, the correlations between
 #'                           variables are optimally approximated by the cosine of the angles between
 #'                           axes. Default is \code{FALSE}.
+#' @param Wasserstein a logical value with default \code{FALSE}. If \code{TRUE}
+#'                    the covariance matrix is computed based on the L2 Wasserstein distance.
 #'
 #' @return an object of class \code{ddPCA}, inherits from class \code{ddbiplot}.
 #' @export
@@ -26,7 +28,8 @@ biplotEZ::PCA
 #' ddbiplot(data = Oils.data) |> PCA() |> plot()
 #'
 PCA.ddbiplot <- function (bp, dim.biplot = c(2, 1, 3), e.vects = 1:bp$p, group.aes=NULL,
-                        show.class.means = FALSE, correlation.biplot=FALSE)
+                        show.class.means = FALSE, correlation.biplot=FALSE,
+                        Wasserstein = FALSE)
 {
 
   dim.biplot <- dim.biplot[1]
@@ -45,7 +48,20 @@ PCA.ddbiplot <- function (bp, dim.biplot = c(2, 1, 3), e.vects = 1:bp$p, group.a
   X <- bp$X
   n <- bp$n
   p <- bp$p
-  Smat <- ddcovmat(X)
+  if (Wasserstein)
+  {
+    if (bp$scaled)
+    {
+      Xtemp <- vector("list", length(X))
+      for (k in 1:p) Xtemp[[k]] <- X[[k]]
+      for (k in 1:p) Xtemp[[k]]$values <- X[[k]]$values*bp$sd[k]
+      Smat <- WassL2var(Xtemp)
+      bp$sd <- sqrt(diag(Smat))
+      for (k in 1:p) X[[k]]$values <- Xtemp[[k]]$values/bp$sd[k]
+    }
+    else Smat <- WassL2var(X)
+  }
+  else Smat <- ddcovmat(X)
 
   svd.out <- svd(Smat)
   V.mat <- svd.out$v
@@ -66,17 +82,6 @@ PCA.ddbiplot <- function (bp, dim.biplot = c(2, 1, 3), e.vects = 1:bp$p, group.a
       X.up <- sapply (X, function (x)x$value[,2])
       Z.lo <- X.lo %*% Vr
       Z.up <- X.up %*% Vr
-      for (k in 1:dim.biplot)
-      {
-        if (all(Z.lo[,k] > Z.up[,k]))
-        {
-          temp <- Z.lo[,k]
-          Z.lo[,k] <- Z.up[,k]
-          Z.up[,k] <- temp
-          Vr[,k] <- -1*Vr[,k]
-          Lmat[,e.vects[k]] <- -1*Lmat[,e.vects[k]]
-        }
-      }
       rownames(Z.lo) <- rownames(Z.up) <- rownames(X[[1]]$values)
       Z <- list (Z.lo, Z.up)
       names(Z) <- c("lo","up")

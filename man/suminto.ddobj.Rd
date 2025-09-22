@@ -4,13 +4,13 @@
 \alias{suminto.ddobj}
 \title{Summarise a data set into a distributional data object}
 \usage{
-suminto.ddobj(df, entities = names(df)[1],
+suminto.ddobj(df, units = names(df)[1],
                      interval=NULL, histogram=NULL, modal=NULL)
 }
 \arguments{
 \item{df}{data frame from which the \code{ddobj} object is created}
 
-\item{entities}{the column names that will form the entities}
+\item{units}{the column names that will form the units}
 
 \item{interval}{the column names that will be summarised into interval scaled data}
 
@@ -25,7 +25,7 @@ and object of class \code{ddobj}
 Summarise a data set into a distributional data object
 }
 \examples{
-suminto.ddobj (esoph, entities = "agegp", interval="ncases",
+suminto.ddobj (esoph, units = "agegp", interval="ncases",
                histogram="ncontrols", modal=c("alcgp","tobgp"))
 
 }

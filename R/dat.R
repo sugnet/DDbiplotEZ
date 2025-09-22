@@ -97,7 +97,7 @@ names(SO.LDP) <- sample.names
 #'               pattern recognition. In Proceedings of the 1988 IEEE International Conference on
 #'               Systems, Man, and Cybernetics (Vol. 1, pp. 494-497). IEEE.
 #'
-#' A data set containing 8 entities with four interval scaled variables and one numeric variable.
+#' A data set containing 8 units with four interval scaled variables and one numeric variable.
 #'
 #' @format An object of class \code{ddobj}. A list of length 5:
 #' \describe{
@@ -105,7 +105,7 @@ names(SO.LDP) <- sample.names
 #'   \item{Freezing.point}{interval scaled variable}
 #'   \item{Iodine.value}{interval scaled variable}
 #'   \item{Saponification}{interval scaled variable}
-#'   \item{SO.LDP}{numeric variable}
+#'   \item{Fatty.acids}{numeric variable}
 #'   }
 #'
 #'   "Oils.data"
@@ -118,7 +118,7 @@ Oils.data <- list (Spec.gravity = list (type = "interval",
                                         values = t(sapply(Iodine.value, function(x) return (x)))),
                    Saponification = list (type = "interval",
                                           values = t(sapply(Saponification, function(x) return (x)))),
-                   SO.LDP = list (type = "numeric",
+                   Fatty.acids = list (type = "numeric",
                                   values = SO.LDP))
 class(Oils.data) <- "ddobj"
 

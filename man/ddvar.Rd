@@ -23,12 +23,12 @@ scaled variable, it should be a list with component \code{$type = "histogram"} a
 \code{intervals} and \code{proportions}.
 }
 \examples{
-obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 ddvar (obj$ncases) # variance
 ddvar (obj$ncases, obj$ncontrols) # covariance
 
 }
 \references{
-Billard, L. and Diday, E. (2003) From the Statistics of Data to the Statistics of Knowledge.
-\emph{Journal of the American Statistical Association.} 98:470-487.
+Billard, L., 2008. Sample covariance functions for complex quantitative data. In Proceedings
+of IASC 2008, Yokohama, Japan, pp 157-163.
 }

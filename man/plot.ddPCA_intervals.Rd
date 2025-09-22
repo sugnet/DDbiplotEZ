@@ -7,6 +7,7 @@
 \method{plot}{ddPCA_intervals}(
   x,
   type = "vertices",
+  show.vertices = FALSE,
   exp.factor = 1.2,
   axis.predictivity = NULL,
   sample.predictivity = NULL,
@@ -21,6 +22,10 @@
 \item{x}{An object of class \code{ddPCA_intervals}.}
 
 \item{type}{either "vertices" or "intervals" with default \code{"vertices"}}
+
+\item{show.vertices}{a logical value with default \code{FALSE}, used to add or omit
+the vertices themselves when representing the vertices matrix
+with a convexhull.}
 
 \item{exp.factor}{a numeric value with default axes of the biplot. Larger values are specified
 for zooming out with respect to sample points in the biplot display and smaller
@@ -57,6 +62,6 @@ An object of class \code{ddPCA_intervals}.
 Generic Plotting function of objects of class ddPCA_intervals
 }
 \examples{
-obj <- suminto.ddobj (mtcars, entities = "cyl", interval=c("mpg","disp","hp"))
+obj <- suminto.ddobj (mtcars, units = "cyl", interval=c("mpg","disp","hp"))
 ddbiplot(data = obj) |> PCA() |> plot()
 }

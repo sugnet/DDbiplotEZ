@@ -3,6 +3,9 @@
 #'
 #' @param x An object of class \code{ddPCA_intervals}.
 #' @param type either "vertices" or "intervals" with default \code{"vertices"}
+#' @param show.vertices a logical value with default \code{FALSE}, used to add or omit
+#'                      the vertices themselves when representing the vertices matrix
+#'                      with a convexhull.
 #' @param exp.factor a numeric value with default axes of the biplot. Larger values are specified
 #'                   for zooming out with respect to sample points in the biplot display and smaller
 #'                   values are specified for zooming in with respect to sample points in the biplot
@@ -31,9 +34,9 @@
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (mtcars, entities = "cyl", interval=c("mpg","disp","hp"))
+#' obj <- suminto.ddobj (mtcars, units = "cyl", interval=c("mpg","disp","hp"))
 #' ddbiplot(data = obj) |> PCA() |> plot()
-plot.ddPCA_intervals <- function(x, type = "vertices", exp.factor=1.2, axis.predictivity=NULL,
+plot.ddPCA_intervals <- function(x, type = "vertices", show.vertices = FALSE, exp.factor=1.2, axis.predictivity=NULL,
                                  sample.predictivity=NULL, zoom = FALSE, add = FALSE, xlim = NULL,
                                  ylim = NULL, ...)
 {
@@ -143,7 +146,7 @@ plot.ddPCA_intervals <- function(x, type = "vertices", exp.factor=1.2, axis.pred
         if (is.null(x$vertices)) x <- vertices(x)
         if (type == "vertices")
           if  (!is.null(x$intervals$which))
-            .interval.asvertices (x$X, x$Vr, x$group.aes, x$vertices, x$n, x$g.names, NULL,
+            .interval.asvertices (x$X, x$Vr, x$group.aes, x$vertices, show.vertices, x$n, x$g.names, NULL,
                                   rep(1,x$n), usr, x$alpha.bag.outside, x$alpha.bag.aes)
         if (type == "intervals")
           if  (!is.null(x$vertices$which))
@@ -204,24 +207,26 @@ plot.ddPCA_intervals <- function(x, type = "vertices", exp.factor=1.2, axis.pred
   invisible(x)
 }
 
-#' Plot PCA of interval scaled data as vertices
+#' Plot PCA of interval scaled data for the vertices
 #'
 #' @param X an object of class \code{ddPCA_intervals}.
 #' @param Vr the matrix to transform the data to principal components.
 #' @param group.aes a vector identifying groups of aesthetic formatting.
 #' @param vertices.aes a list returned as the \code{vertices} component from the
 #'                       function \code{vertices()}.
-#' @param n the number of entities.
+#' @param show.vertices a logical value for adding or omitting the vertices with the
+#'                      convex hull.
+#' @param n the number of units.
 #' @param g.names a vector identifying groups for aesthetic formatting.
 #' @param too.small a cut-off value for minimum predictivity to show on the biplot
 #' @param lwd.vec a factor to illustrate predictivity with line widths.
 #' @param usr the current plotting region.
-#' @param alpha.bag.outside entities to plot outside an alpha-bag.
+#' @param alpha.bag.outside units to plot outside an alpha-bag.
 #' @param alpha.bag.aes the aesthetic formatting for alpha-bags.
 #'
 #' @noRd
 #'
-.interval.asvertices <- function (X, Vr, group.aes, vertices.aes, n, g.names, too.small,
+.interval.asvertices <- function (X, Vr, group.aes, vertices.aes, show.vertices, n, g.names, too.small,
                              lwd.vec, usr = usr, alpha.bag.outside, alpha.bag.aes)
 {
   # - only performed once for all variables:
@@ -237,7 +242,7 @@ plot.ddPCA_intervals <- function(x, type = "vertices", exp.factor=1.2, axis.pred
   }
   groups <- levels(group.aes)
 
-  # - done for each of the n entities:
+  # - done for each of the n units:
   connection.mat <- NULL
   for (i in 1:n)
   {
@@ -258,7 +263,7 @@ plot.ddPCA_intervals <- function(x, type = "vertices", exp.factor=1.2, axis.pred
     plot.lty <- vertices.aes$lty[group.aes[i]]
 
     if (!is.null(too.small)) warning ("predictivities to be implemented")
-    graphics::points (Zmat, col = plot.col, pch = plot.pch, cex=plot.cex)
+    if (show.vertices) graphics::points (Zmat, col = plot.col, pch = plot.pch, cex=plot.cex)
     if (vertices.aes$type == "convexhull")
       graphics::polygon(Zmat[grDevices::chull(Zmat),], border = plot.col, lwd = plot.lwd, lty = plot.lty)
 
@@ -303,13 +308,13 @@ plot.ddPCA_intervals <- function(x, type = "vertices", exp.factor=1.2, axis.pred
 #' @param group.aes a vector identifying groups of aesthetic formatting.
 #' @param interval.aes a list returned as the \code{interval} component from the
 #'                       function \code{intervals()}.
-#' @param n the number of entities.
+#' @param n the number of units.
 #' @param p the number of interval variables.
 #' @param g.names a vector identifying groups for aesthetic formatting.
 #' @param too.small a cut-off value for minimum predictivity to show on the biplot
 #' @param lwd.vec a factor to illustrate predictivity with line widths.
 #' @param usr the current plotting region.
-#' @param alpha.bag.outside entities to plot outside an alpha-bag.
+#' @param alpha.bag.outside units to plot outside an alpha-bag.
 #' @param alpha.bag.aes the aesthetic formatting for alpha-bags.
 #'
 #' @noRd
@@ -337,7 +342,7 @@ plot.ddPCA_intervals <- function(x, type = "vertices", exp.factor=1.2, axis.pred
                            label.offset = interval.aes$label.offset)
 
   centres <- sapply (X, function(x) apply(x$value, 1, mean))
-  ZZ <- cbind(centres%*%Vr,centres%*%Vr) # x-min, y-min, x-max, y-max for each entity
+  ZZ <- cbind(centres%*%Vr,centres%*%Vr) # x-min, y-min, x-max, y-max for each unit
 
   # - done for each of the p intervals:
   for (j in 1:p)
@@ -381,12 +386,12 @@ plot.ddPCA_intervals <- function(x, type = "vertices", exp.factor=1.2, axis.pred
     ZZ[ZZ[,4]<max.y,4] <- max.y[ZZ[,4]<max.y]
 
     plot.data <- plot.data[,-1]
-    entity.aes <- plot.data[,2:5]
+    unit.aes <- plot.data[,2:5]
     plot.data <- plot.data[,-(1:5)]
 
     for (i in 1:nrow(plot.data))
-      graphics::lines (x = plot.data[i,c(1,3)], y = plot.data[i,c(2,4)], col = entity.aes$col[i],
-                       lwd = entity.aes$lwd.vec[i] * entity.aes$lwd[i], lty = entity.aes$lty[i])
+      graphics::lines (x = plot.data[i,c(1,3)], y = plot.data[i,c(2,4)], col = unit.aes$col[i],
+                       lwd = unit.aes$lwd.vec[i] * unit.aes$lwd[i], lty = unit.aes$lty[i])
   }
   show.labels <- interval.aes$label & label.aes$shown
   ZZ <- ZZ[show.labels,]

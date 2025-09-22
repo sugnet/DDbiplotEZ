@@ -10,14 +10,14 @@
 #' \code{intervals} and \code{proportions}.
 #'
 #' @references
-#' Billard, L. and Diday, E. (2003) From the Statistics of Data to the Statistics of Knowledge.
-#' \emph{Journal of the American Statistical Association.} 98:470-487.
+#' Billard, L., 2008. Sample covariance functions for complex quantitative
+#'  data. In Proceedings of IASC 2008, Yokohama, Japan, pp 157-163.
 #'
 #' @returns numeric mean value
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 #' ddmean (obj$ncases)
 #' ddmean (obj$ncontrols)
 #'
@@ -59,14 +59,14 @@ ddmean <- function (x)
 #' \code{intervals} and \code{proportions}.
 #'
 #' @references
-#' Billard, L. and Diday, E. (2003) From the Statistics of Data to the Statistics of Knowledge.
-#' \emph{Journal of the American Statistical Association.} 98:470-487.
+#' Billard, L., 2008. Sample covariance functions for complex quantitative data. In Proceedings
+#' of IASC 2008, Yokohama, Japan, pp 157-163.
 #'
 #' @returns numeric variance or covariance value
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 #' ddvar (obj$ncases) # variance
 #' ddvar (obj$ncases, obj$ncontrols) # covariance
 #'
@@ -117,14 +117,14 @@ ddvar <- function (x, y)
 #' \code{intervals} and \code{proportions}.
 #'
 #' @references
-#' Billard, L. and Diday, E. (2003) From the Statistics of Data to the Statistics of Knowledge.
-#' \emph{Journal of the American Statistical Association.} 98:470-487.
+#' Billard, L., 2008. Sample covariance functions for complex quantitative data. In Proceedings
+#' of IASC 2008, Yokohama, Japan, pp 157-163.
 #'
 #' @returns numeric variance or covariance value
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 #' ddcov (obj$ncases, obj$ncontrols)
 #'
 ddcov <- function (x, y)
@@ -145,8 +145,11 @@ ddcov <- function (x, y)
     mean.j <- ddmean(x)
     mean.k <- ddmean(y)
     for (i in 1:nrow(x$values))
-      tot <- tot + (x$values[i,2] + x$values[i,1]) * (y$values[i,2] + y$values[i,1])
-    cov.val <- tot / (4*nrow(x$values)) - mean.j*mean.k
+      tot <- tot + (2 * (x$values[i,1] - mean.j) * (y$values[i,1] - mean.k) +
+                    (x$values[i,1] - mean.j) * (y$values[i,2] - mean.k) +
+                    (x$values[i,2] - mean.j) * (y$values[i,1] - mean.k) +
+                    2* (x$values[i,2] - mean.j) * (y$values[i,2] - mean.k))
+    cov.val <- tot / (6*nrow(x$values))
   }
 
   # --- histogram scaled - histogram scaled variables
@@ -158,14 +161,20 @@ ddcov <- function (x, y)
     mean.j <- ddmean(x)
     mean.k <- ddmean(y)
 
-    mat.j <- (x$intervals[,-nx] + x$intervals[, -1]) * x$proportions
-    mat.k <- (y$intervals[,-ny] + y$intervals[, -1]) * y$proportions
-    mat.j[is.na(mat.j)] <- 0
-    mat.k[is.na(mat.k)] <- 0
-    temp <- as.matrix(t(mat.j)) %*% as.matrix(mat.k)
-    cov.val <- sum(temp)/(4*nrow(x$intervals)) - mean.j*mean.k
-  }
+    mat.Lj <- as.matrix((x$intervals[,-nx] - mean.j) * x$proportions)
+    mat.Uj <- as.matrix((x$intervals[,-1] - mean.j) * x$proportions)
+    mat.Lk <- as.matrix((y$intervals[,-ny] - mean.k) * y$proportions)
+    mat.Uk <- as.matrix((y$intervals[,-1] - mean.k) * y$proportions)
+    mat.Lj[is.na(mat.Lj)] <- 0
+    mat.Uj[is.na(mat.Uj)] <- 0
+    mat.Lk[is.na(mat.Lk)] <- 0
+    mat.Uk[is.na(mat.Uk)] <- 0
 
+    cov.val <- sum(2 * t(mat.Lj) %*% mat.Lk +
+                 t(mat.Lj) %*% mat.Uk +
+                 t(mat.Uj) %*% mat.Lk +
+                 2 * t(mat.Uj) %*% mat.Uk)/(6*nrow(x$intervals))
+  }
   cov.val
 }
 
@@ -180,7 +189,7 @@ ddcov <- function (x, y)
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 #' ddcor (obj$ncases, obj$ncontrols)
 #
 ddcor <- function (x, y)
@@ -198,7 +207,7 @@ ddcor <- function (x, y)
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 #' ddcovmat (obj)
 
 ddcovmat <- function (obj)
@@ -225,7 +234,7 @@ ddcovmat <- function (obj)
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, entities = "agegp", interval="ncases", histogram="ncontrols")
+#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 #' ddcormat (obj)
 
 ddcormat <- function (obj)
@@ -238,4 +247,88 @@ ddcormat <- function (obj)
   mat <- mat + t(mat)
   diag(mat) <- 1
   mat
+}
+
+# ===============================================================================================
+
+#' Computes the L2 Wasserstein variance or covariance of (a) distributional data object(s)
+#'
+#' @param x an object of class \code{ddojb}
+#'
+#' @description
+#' This function uses the \code{WH.var.covar} method from the \code{HistDAWass} package to
+#' compute variances and covariances. Interval scaled data are converted to histogram
+#' scaled with a single bin and proportion = 1.
+#'
+#' @references
+#' Irpino, A. and Verde, R. 2015. Basic statistics for distributional symbolic variables:
+#' a new metric-based approach. Advances in Data Analysis and Classification, 9(2), pp.143-157.
+#'
+#' @returns variance-covariance matrix
+#' @export
+#'
+#' @examples
+#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+#' WassL2var (obj)
+#'
+WassL2var <- function (x)
+{
+  hist.to.distrH <- function (a, i)
+  {
+    int <- as.numeric(a$intervals[i,])
+    int <- int[!is.na(int)]
+    prop <- as.numeric(a$proportions[i,])
+    prop <- prop[!is.na(prop)]
+    HistDAWass::distributionH (x = int, p = c(0,cumsum(prop)))
+  }
+
+  n <- switch(x[[1]]$type,
+              numeric = length(x[[1]]$values),
+              interval = nrow(x[[1]]$values),
+              histogram = nrow(x[[1]]$intervals))
+  unit.names <- switch(x[[1]]$type,
+                         numeric = names(x[[1]]$values),
+                         interval = rownames(x[[1]]$values),
+                         histogram = rownames(x[[1]]$intervals))
+  p <- length (x)
+  distrH.list <- vector ("list", n*p)
+  i <- 0
+  for (j in 1:p)
+  {
+    if (x[[j]]$type == "numeric") x[[j]] <- num.to.int (x[[j]])
+    if (x[[j]]$type == "interval") x[[j]] <- int.to.hist (x[[j]])
+    for (h in 1:n)
+      { i <- i + 1
+        distrH.list[[i]] <- hist.to.distrH(x[[j]], i=h)
+      }
+  }
+  MatHobj <- HistDAWass::MatH (distrH.list, nrow=n, ncol=p)
+  HistDAWass::WH.var.covar (MatHobj)
+}
+
+#' Computes the L2 Wasserstein correlation matrix of distributional data object(s)
+#'
+#' @param x an object of class \code{ddojb}
+#'
+#' @description
+#' This function uses the \code{WH.var.covar} method from the \code{HistDAWass} package to
+#' compute correlations. Interval scaled data are converted to histogram
+#' scaled with a single bin and proportion = 1.
+#'
+#' @references
+#' Irpino, A. and Verde, R. 2015. Basic statistics for distributional symbolic variables:
+#' a new metric-based approach. Advances in Data Analysis and Classification, 9(2), pp.143-157.
+#'
+#' @returns correlation matrix
+#' @export
+#'
+#' @examples
+#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+#' WassL2cor (obj)
+#'
+WassL2cor <- function (x)
+{
+  covmat <- WassL2var (x)
+  SDs <- diag(sqrt(diag(covmat)))
+  solve(SDs) %*% covmat %*% solve(SDs)
 }
