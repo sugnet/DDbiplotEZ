@@ -34,12 +34,19 @@ with default as the same colour of the intervals.}
 intervals, with default \code{0.75}.}
 
 \item{label.side}{the side at which the label of the interval appears, with default
-\code{bottom}. Note that unlike the argument \code{pos} in \code{text()},
-options are "\code{bottom}", "\code{left}", "\code{top}", "\code{right}" and
-not \code{1}, \code{2}, \code{3}, \code{4}.}
+\code{bottom}.  Note that unlike the argument \code{pos} in \code{text()},
+options are not \code{1}, \code{2}, \code{3}, \code{4}, but "\code{bottom}",
+"\code{left}", "\code{top}", "\code{right}" and in addition "\code{mid.bottom}",
+"\code{mid.left}", "\code{mid.right}", "\code{mid.top}", "\code{bottom.left}",
+"\code{bottom.right}", "\code{top.left}", and "\code{top.right}" are also allowed.
+The latter four options only take effect when the \code{type} argument in \code{plot}
+is "\code{diagonal}".}
 
 \item{label.offset}{the offset of the label from the interval. See \code{?text} for a
-detailed explanation of the argument \code{offset}.}
+detailed explanation of the argument \code{offset} when \code{label.side} is one of
+"\code{bottom}", "\code{left}", "\code{top}", "\code{right}". For the other options
+of \code{label.side}, the \code{label.offset} values is applied as \code{offset}-0.5
+units in the plot.}
 }
 \value{
 The object of class \code{ddbiplot} will be appended with a list called \code{intervals}
@@ -57,7 +64,9 @@ The object of class \code{ddbiplot} will be appended with a list called \code{in
 \item{label.offset}{the offset of the label from the plotted intervals.}
 }
 \description{
-This function allows the user to format the aesthetics for the units.
+This function allows the user to format the aesthetics for the units when
+units are displayed as \code{type = "intervals"} or \code{type = "diagonal"}
+in \code{plot()}.
 }
 \examples{
 ddbiplot(data = Oils.data) |> PCA() |> intervals(col="purple",lwd=2, label = TRUE) |> plot()

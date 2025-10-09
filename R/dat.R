@@ -122,3 +122,674 @@ Oils.data <- list (Spec.gravity = list (type = "interval",
                                   values = SO.LDP))
 class(Oils.data) <- "ddobj"
 
+# ----- Credit card data
+
+tmp <- new.env()
+load("G:\\My Drive\\My Documents\\Navorsing\\Projekte\\Symbolic Data Analysis\\credicard_dataset.RDATA", envir = tmp)
+tmpdata <- tmp$CreditCard_symbDF
+colnames (tmpdata) <- gsub (" min", "", colnames (tmpdata))
+Creditcard.data <- create.ddobj (tmpdata,
+                                 types = rep("interval", 5),
+                                  cols = c(1, 3, 5, 7, 9))
+rm(tmpdata)
+rm(tmp)
+
+
+### ===================================================================
+### Data sets from MAINT.Data
+
+#' Converts the Cars data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{MAINT.Data} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' Cars.data <- get.Cars()
+#'
+get.Cars <- function ()
+{
+  if (!requireNamespace("MAINT.Data", quietly = TRUE)) {
+    stop("Package 'MAINT.Data' is required for this function. Please install it.", call. = FALSE)
+  }
+  df <- MAINT.Data::Cars
+  colnames (df) <- gsub ("LB_", "", colnames (df))
+  create.ddobj (df,
+                types = c(rep("interval", 4), "categorical"),
+                cols = c(1, 3, 5, 7, 9))
+}
+
+#' Converts the ChinaTemp data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{MAINT.Data} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' China.data <- get.ChinaTemp()
+#'
+get.ChinaTemp <- function ()
+{
+  if (!requireNamespace("MAINT.Data", quietly = TRUE)) {
+    stop("Package 'MAINT.Data' is required for this function. Please install it.", call. = FALSE)
+  }
+  df <- MAINT.Data::ChinaTemp
+  colnames (df) <- gsub ("LB_", "", colnames (df))
+  create.ddobj (df,
+                types = c(rep("interval", 4), "categorical"),
+                cols = c(1, 3, 5, 7, 9))
+}
+
+#' Converts the FlightsIdt data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{MAINT.Data} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' Flights.data <- get.FlightsIdt()
+#'
+get.FlightsIdt <- function ()
+{
+  if (!requireNamespace("MAINT.Data", quietly = TRUE)) {
+    stop("Package 'MAINT.Data' is required for this function. Please install it.", call. = FALSE)
+  }
+  half.ranges <- exp(MAINT.Data::FlightsIdt@LogR)/2
+  midpoints <- MAINT.Data::FlightsIdt@MidP
+  p <- ncol(midpoints)
+  mat <- NULL
+  for (j in 1:p)
+    mat <- cbind (mat, midpoints[,j]-half.ranges[,j], midpoints[,j]+half.ranges[,j])
+  colnames (mat) <- paste0 (rep(gsub (".MidP", "", colnames (midpoints)), each=2), c("","1"))
+  rownames (mat) <- rownames(MAINT.Data::FlightsIdt@MidP)
+  create.ddobj (mat,
+                types = rep("interval", p),
+                cols = c((1:p)*2-1))
+}
+
+#' Converts the LoansbyPurpose_minmaxDt data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{MAINT.Data} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' Loan.data <- get.LoansbyPurpose_minmaxDt()
+#'
+get.LoansbyPurpose_minmaxDt <- function ()
+{
+  if (!requireNamespace("MAINT.Data", quietly = TRUE)) {
+    stop("Package 'MAINT.Data' is required for this function. Please install it.", call. = FALSE)
+  }
+  df <- MAINT.Data::LoansbyPurpose_minmaxDt
+  colnames (df) <- gsub ("_min", "", colnames (df))
+  create.ddobj (df,
+                types = rep("interval", 4),
+                cols = c(1, 3, 5, 7))
+}
+
+#' Converts the LoansbyRiskLvs_minmaxDt data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{MAINT.Data} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' Loan.data <- get.LoansbyRiskLvs_minmaxDt()
+#'
+get.LoansbyRiskLvs_minmaxDt <- function ()
+{
+  if (!requireNamespace("MAINT.Data", quietly = TRUE)) {
+    stop("Package 'MAINT.Data' is required for this function. Please install it.", call. = FALSE)
+  }
+  df <- MAINT.Data::LoansbyRiskLvs_minmaxDt
+  colnames (df) <- gsub ("_min", "", colnames (df))
+  create.ddobj (df,
+                types = rep("interval", 4),
+                cols = c(1, 3, 5, 7))
+}
+
+
+#' Converts the LoansbyRiskLvs_qntlDt data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{MAINT.Data} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' Loan.data <- get.LoansbyRiskLvs_qntlDt()
+#'
+get.LoansbyRiskLvs_qntlDt <- function ()
+{
+  if (!requireNamespace("MAINT.Data", quietly = TRUE)) {
+    stop("Package 'MAINT.Data' is required for this function. Please install it.", call. = FALSE)
+  }
+  df <- MAINT.Data::LoansbyRiskLvs_qntlDt
+  colnames (df) <- gsub ("_q0.10", "", colnames (df))
+  create.ddobj (df,
+                types = rep("interval", 4),
+                cols = c(1, 3, 5, 7))
+}
+
+### ===================================================================
+### Data sets from dataSDA
+
+#' Converts the Abalone data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' Abalone.data <- get.Abalone()
+#'
+get.Abalone <- function ()
+{
+  if (!requireNamespace("dataSDA", quietly = TRUE)) {
+    stop("Package 'dataSDA' is required for this function. Please install it.", call. = FALSE)
+  }
+  df <- dataSDA::Abalone
+  colnames (df) <- gsub ("_min", "", colnames (df))
+  create.ddobj (df,
+                types = rep("interval", 7),
+                cols = c(1, 3, 5, 7, 9, 11, 13))
+}
+
+#' Converts the age_choloesterol_weight.int data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' age.chol.wt.data <- get.age_cholosterol_weight()
+#'
+get.age_cholesterol_weight.int <- function ()
+{
+  p <- ncol(dataSDA::age_cholesterol_weight.int)
+  var.names <- colnames(dataSDA::age_cholesterol_weight.int)
+  mat <- NULL
+  for (j in 1:p)
+  {
+    dat <- sapply(dataSDA::age_cholesterol_weight.int[[j]], function(x)
+                     { complex <- x[1]
+                       cbind (Re(complex),Im(complex))
+                     })
+    mat <- cbind (mat, t(dat))
+  }
+  colnames(mat) <- paste0 (rep(var.names, each=2), c("","1"))
+  create.ddobj (mat,
+                types = c("interval","interval","interval","numeric"),
+                cols = c(1, 3, 5, 7))
+}
+
+#' Converts the airline_flights data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' flights.data <- get.airline_flights()
+#'
+get.airline_flights <- function ()
+{
+#  [1] "Flight Time(<120)"        "Flight Time([120, 220])"  "Flight Time(>220)"        "Taxi In(<4)"
+#  [5] "Taxi In([4, 10])"         "Taxi In(>10)"             "Arrival Delay(<0)"        "Arrival Delay([0, 60])"
+#  [9] "Arrival Delay(>60)"       "Taxi Out(<16)"            "Taxi Out([16, 30])"       "Taxi Out(>30)"
+#  [13] "Departure Delay(<0)"      "Departure Delay([0, 60])" "Departure Delay(>60)"     "Weather Delay(No)"
+#  [17] "Weather Delay(Yes)"
+
+  Flight.Time <- cbind (Flight.Time=0, FT1=120, FT2=220, FT3=220+120,
+                        FT4 = dataSDA::airline_flights$"Flight Time(<120)",
+                        FT5 = dataSDA::airline_flights$"Flight Time([120, 220])",
+                        FT6 = dataSDA::airline_flights$"Flight Time(>220)")
+  Taxi.In <- cbind (Taxi.In=0, TI1=4, TI2=10, TI3=20,
+                    TI4 = dataSDA::airline_flights$"Taxi In(<4)",
+                    TI5 = dataSDA::airline_flights$"Taxi In([4, 10])",
+                    TI6 = dataSDA::airline_flights$"Taxi In(>10)")
+  Arrival.Delay <- cbind (Arrival.Delay=-60, AD1=0, AD2=60, AD3=120,
+                    AD4 = dataSDA::airline_flights$"Arrival Delay(<0)",
+                    AD5 = dataSDA::airline_flights$"Arrival Delay([0, 60])",
+                    AD6 = dataSDA::airline_flights$"Arrival Delay(>60)")
+  Taxi.Out <- cbind (Taxi.Out=0, TO1=16, TO2=30, TO3=60,
+                    TO4 = dataSDA::airline_flights$"Taxi Out(<16)",
+                    TO5 = dataSDA::airline_flights$"Taxi Out([16, 30])",
+                    TO6 = dataSDA::airline_flights$"Taxi Out(>30)")
+  Departure.Delay <- cbind (Departure.Delay=-60, DD1=0, DD2=60, DD3=120,
+                          DD4 = dataSDA::airline_flights$"Departure Delay(<0)",
+                          DD5 = dataSDA::airline_flights$"Departure Delay([0, 60])",
+                          DD6 = dataSDA::airline_flights$"Departure Delay(>60)")
+  Weather.Delay <- data.frame (Weather.Delay="Yes", WD1="No",
+                            WD3 = dataSDA::airline_flights$"Weather Delay(Yes)",
+                            WD4 = dataSDA::airline_flights$"Weather Delay(No)")
+  df <- data.frame (Flight.Time, Taxi.In, Arrival.Delay, Taxi.Out, Departure.Delay, Weather.Delay)
+  create.ddobj (df,
+                types = c(rep("histogram", 5), "modal"),
+                cols = c(1,8,15,22,29,36),
+                n.int = rep(3,5),2)
+}
+
+#' Converts the baseball.int data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' baseball.data <- get.baseball.int()
+#'
+get.baseball.int <- function ()
+{
+  p <- ncol(dataSDA::baseball.int)
+  var.names <- colnames(dataSDA::baseball.int)
+  mat <- NULL
+  for (j in 1:(p-1))
+  {
+    dat <- sapply(dataSDA::baseball.int[[j]], function(x)
+    { complex <- x[1]
+      cbind (Re(complex),Im(complex))
+    })
+    mat <- cbind (mat, t(dat))
+  }
+  mat <- cbind (mat, sapply(dataSDA::baseball.int[[3]], function(x) x[1]))
+  colnames(mat) <- c(paste0 (rep(var.names[1:2], each=2), c("","1")), var.names[3])
+  create.ddobj (mat,
+                types = c("interval","interval","categorical"),
+                cols = c(1, 3, 5))
+}
+
+#' Converts the bird.int data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#'
+#' @examples
+#' bird.data <- get.bird.int()
+#'
+get.bird.int <- function ()
+{
+  p <- ncol(dataSDA::bird.int)
+  var.names <- colnames(dataSDA::bird.int)
+  mat <- NULL
+  for (j in 1:p)
+  {
+    dat <- sapply(dataSDA::bird.int[[j]], function(x)
+    { complex <- x[1]
+      cbind (Re(complex),Im(complex))
+    })
+    mat <- cbind (mat, t(dat))
+  }
+  colnames(mat) <- paste0 (rep(var.names, each=2), c("","1"))
+  create.ddobj (mat,
+                types = c("interval","interval"),
+                cols = c(1, 3))
+}
+
+#' Converts the blood_pressure.int data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#'
+#' @examples
+#' bp.data <- get.blood_pressure.int()
+#'
+get.blood_pressure.int <- function ()
+{
+  p <- ncol(dataSDA::blood_pressure.int)
+  var.names <- colnames(dataSDA::blood_pressure.int)
+  mat <- NULL
+  for (j in 1:p)
+  {
+    dat <- sapply(dataSDA::blood_pressure.int[[j]], function(x)
+    { complex <- x[1]
+    cbind (Re(complex),Im(complex))
+    })
+    mat <- cbind (mat, t(dat))
+  }
+  colnames(mat) <- paste0 (rep(var.names, each=2), c("","1"))
+  create.ddobj (mat,
+                types = rep("interval",p),
+                cols = (1:p)*2-1)
+}
+
+#' Converts the car.int data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#'
+#' @examples
+#' car.data <- get.car.int()
+#'
+get.car.int <- function ()
+{
+  p <- ncol(dataSDA::car.int)-1
+  var.names <- colnames(dataSDA::car.int)[-1]
+  mat <- NULL
+  for (j in (1:p)+1)
+  {
+    dat <- sapply(dataSDA::car.int[[j]], function(x)
+    { complex <- x[1]
+    cbind (Re(complex),Im(complex))
+    })
+    mat <- cbind (mat, t(dat))
+  }
+  colnames(mat) <- paste0 (rep(var.names, each=2), c("","1"))
+  rownames(mat) <- dataSDA::car.int[[1]]
+  create.ddobj (mat,
+                types = rep("interval",p),
+                cols = (1:p*2-1))
+}
+
+#' Converts the Face.iGAP data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' face.data <- get.Face.iGAP()
+#'
+get.Face.iGAP <- function ()
+{
+  p <- ncol(dataSDA::Face.iGAP)
+  var.names <- colnames(dataSDA::Face.iGAP)
+  mat <- NULL
+  for (j in 1:p)
+  {
+    dat <- sapply(dataSDA::Face.iGAP[[j]], function(x)
+    { complex <- x
+
+      lbound <- substring(complex,2,match(",",substring (complex,1:nchar(complex),1:nchar(complex)))-1)
+      ubound <- substring(complex,match(",",substring (complex,1:nchar(complex),1:nchar(complex)))+1,nchar(complex))
+      cbind (as.numeric(lbound),as.numeric(ubound))
+    })
+    mat <- cbind (mat, t(dat))
+  }
+  rownames(mat) <- rownames(dataSDA::Face.iGAP)
+  colnames(mat) <- paste0 (rep(var.names, each=2), c("","1"))
+  create.ddobj (mat,
+                types = rep("interval",p),
+                cols = (1:p)*2-1)
+}
+
+#' Converts the finance.int data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' fin.data <- get.finance.int()
+#'
+get.finance.int <- function ()
+{
+  p <- ncol(dataSDA::finance.int)-1
+  var.names <- colnames(dataSDA::finance.int)[-1]
+  mat <- NULL
+  for (j in (1:p)+1)
+  {
+    dat <- sapply(dataSDA::finance.int[[j]], function(x)
+    { complex <- x[1]
+    cbind (Re(complex),Im(complex))
+    })
+    mat <- cbind (mat, t(dat))
+  }
+  colnames(mat) <- paste0 (rep(var.names, each=2), c("","1"))
+  rownames(mat) <- dataSDA::finance.int[[1]]
+  create.ddobj (mat,
+                types = c(rep("interval",p-1),"numeric"),
+                cols = (1:p*2-1))
+}
+
+#' Converts the horses.int data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' horse.data <- get.horses.int()
+#'
+get.horses.int <- function ()
+{
+  p <- ncol(dataSDA::horses.int)-1
+  var.names <- colnames(dataSDA::horses.int)[-1]
+  mat <- NULL
+  for (j in (1:p)+1)
+  {
+    dat <- sapply(dataSDA::horses.int[[j]], function(x)
+    { complex <- x[1]
+    cbind (Re(complex),Im(complex))
+    })
+    mat <- cbind (mat, t(dat))
+  }
+  colnames(mat) <- paste0 (rep(var.names, each=2), c("","1"))
+  rownames(mat) <- dataSDA::horses.int[[1]]
+  create.ddobj (mat,
+                types = c(rep("interval",p-1),"numeric"),
+                cols = (1:p*2-1))
+}
+
+#' Converts the lackinfo.int data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' lackinfo.data <- get.lackinfo.int()
+#'
+get.lackinfo.int <- function ()
+{
+  p <- ncol(dataSDA::lackinfo.int)-2
+  var.names <- colnames(dataSDA::lackinfo.int)[-(1:2)]
+  mat <- NULL
+  for (j in (1:p)+2)
+  {
+    dat <- sapply(dataSDA::lackinfo.int[[j]], function(x)
+    { complex <- x[1]
+    cbind (Re(complex),Im(complex))
+    })
+    mat <- cbind (mat, t(dat))
+  }
+  colnames(mat) <- paste0 (rep(var.names, each=2), c("","1"))
+  rownames(mat) <- dataSDA::lackinfo.int[[1]]
+  mat <- data.frame (sex=dataSDA::lackinfo.int$sex, mat)
+  create.ddobj (mat,
+                types = c("categorical","numeric", rep("interval",p-1)),
+                cols = c(1,(1:p)*2))
+}
+
+#' Converts the mushroom data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' mushroom.data <- get.mushroom()
+#'
+get.mushroom <- function ()
+{
+  if (!requireNamespace("dataSDA", quietly = TRUE)) {
+    stop("Package 'dataSDA' is required for this function. Please install it.", call. = FALSE)
+  }
+  df <- dataSDA::mushroom[,-1]
+  colnames (df) <- gsub ("_min", "", colnames (df))
+  rownames(df) <- dataSDA::mushroom[,1]
+  create.ddobj (df,
+                types = c(rep("interval", 3), "categorical"),
+                cols = c(1, 3, 5, 7))
+}
+
+#' Converts the profession.int data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' profession.data <- get.profession.int()
+#'
+get.profession.int <- function ()
+{
+  if (!requireNamespace("dataSDA", quietly = TRUE)) {
+    stop("Package 'dataSDA' is required for this function. Please install it.", call. = FALSE)
+  }
+
+  p <- ncol(dataSDA::profession.int)-2
+  var.names <- colnames(dataSDA::profession.int)[-(1:2)]
+  mat <- NULL
+  for (j in (1:p)+2)
+  {
+    dat <- sapply(dataSDA::profession.int[[j]], function(x)
+    { complex <- x[1]
+    cbind (Re(complex),Im(complex))
+    })
+    mat <- cbind (mat, t(dat))
+  }
+  colnames(mat) <- paste0 (rep(var.names, each=2), c("","1"))
+  df <- data.frame (Type_of_Work = dataSDA::profession.int[,1],
+                    Profession = dataSDA::profession.int[,2], mat)
+  create.ddobj (df,
+                types = c("categorical", "categorical", "interval", "interval"),
+                cols = c(1, 2, 3, 5))
+}
+
+#' Converts the soccer.bivar.int data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' soccer.data <- get.soccer.bivar.int()
+#'
+get.soccer.bivar.int <- function ()
+{
+  if (!requireNamespace("dataSDA", quietly = TRUE)) {
+    stop("Package 'dataSDA' is required for this function. Please install it.", call. = FALSE)
+  }
+
+  p <- ncol(dataSDA::soccer.bivar.int)
+  var.names <- colnames(dataSDA::soccer.bivar.int)
+  mat <- NULL
+  for (j in (1:p))
+  {
+    dat <- sapply(dataSDA::soccer.bivar.int[[j]], function(x)
+    { complex <- x[1]
+    cbind (Re(complex),Im(complex))
+    })
+    mat <- cbind (mat, t(dat))
+  }
+  colnames(mat) <- paste0 (rep(var.names, each=2), c("","1"))
+  create.ddobj (mat,
+                types = rep("interval", p),
+                cols = c(1, 3, 5))
+}
+
+#' Converts the veterinary.int data set to a ddobj
+#'
+#' @returns an object of class \code{ddobj}
+#' @export
+#'
+#' @description
+#' Obtain the data set from the package \code{dataSDA} and convert is into a \code{ddobj}
+#' for use in \code{ddbiplot()}.
+#'
+#' @examples
+#' vet.data <- get.veterinary.int()
+#'
+get.veterinary.int <- function ()
+{
+  if (!requireNamespace("dataSDA", quietly = TRUE)) {
+    stop("Package 'dataSDA' is required for this function. Please install it.", call. = FALSE)
+  }
+
+  p <- ncol(dataSDA::veterinary.int)-1
+  var.names <- colnames(dataSDA::veterinary.int)[-1]
+  mat <- NULL
+  for (j in (1:p)+1)
+  {
+    dat <- sapply(dataSDA::veterinary.int[[j]], function(x)
+    { complex <- x[1]
+    cbind (Re(complex),Im(complex))
+    })
+    mat <- cbind (mat, t(dat))
+  }
+  colnames(mat) <- paste0 (rep(var.names, each=2), c("","1"))
+  df <- data.frame (Sex = substring(dataSDA::veterinary.int[[1]],
+                                    nchar(dataSDA::veterinary.int[[1]]),
+                                    nchar(dataSDA::veterinary.int[[1]])), mat)
+  rownames(df) <- dataSDA::veterinary.int[[1]]
+  create.ddobj (df,
+                types = c("categorical","interval","interval"),
+                cols = c(1, 2, 4))
+}

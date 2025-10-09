@@ -41,7 +41,9 @@ vertices, with default \code{0.3}.}
 \item{label.side}{the side at which the label of the unit appears, with default
 \code{bottom}. Note that unlike the argument \code{pos} in \code{text()},
 options are "\code{bottom}", "\code{left}", "\code{top}", "\code{right}" and
-not \code{1}, \code{2}, \code{3}, \code{4}.}
+not \code{1}, \code{2}, \code{3}, \code{4}. In addition, there is an option
+"\code{middel}" to place the label centred at the centroid of the vertices. If
+this option is selected, the \code{offset} argument is ignored.}
 
 \item{label.offset}{the offset of the label from the plotted vertices. See \code{?text} for a
 detailed explanation of the argument \code{offset}.}
@@ -68,7 +70,8 @@ The object of class \code{ddbiplot} will be appended with a list called \code{ve
 \item{type}{either \code{"convexhull"} or \code{"connect"}}
 }
 \description{
-This function allows the user to format the aesthetics for the units.
+This function allows the user to format the aesthetics for the units
+displayed based on the vertices matrix.
 }
 \examples{
 ddbiplot(data = Oils.data) |> PCA() |> vertices(col="purple",lwd=2, label = TRUE) |> plot()

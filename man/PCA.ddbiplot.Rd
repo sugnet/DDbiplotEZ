@@ -11,7 +11,7 @@
   group.aes = NULL,
   show.class.means = FALSE,
   correlation.biplot = FALSE,
-  Wasserstein = FALSE
+  ...
 )
 }
 \arguments{
@@ -31,9 +31,6 @@ biplot.}
 optimally approximated in the biplot. If \code{TRUE}, the correlations between
 variables are optimally approximated by the cosine of the angles between
 axes. Default is \code{FALSE}.}
-
-\item{Wasserstein}{a logical value with default \code{FALSE}. If \code{TRUE}
-the covariance matrix is computed based on the L2 Wasserstein distance.}
 }
 \value{
 an object of class \code{ddPCA}, inherits from class \code{ddbiplot}.

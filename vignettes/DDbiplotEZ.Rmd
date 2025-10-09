@@ -70,6 +70,38 @@ suminto.ddobj(diamonds, units = c("color","cut"),
               histogram = c("carat", "price"), interval = c("depth", "table"), modal = "clarity")
 ```
 
+## Data sets available in `DDbiplotEZ`
+
+The `Oils.data` from @Ichino1988 is available as well as the `Creditcard.data`. Data sets from the R packages `MAINT.Data` and `dataSDA` can be imported as `ddbiplot` objects using the functions listed below. The function names are exactly those in the package, with a prefix `get.` added.
+
+### Data sets from `MAINT.Data`
+
+* `get.Cars()`
+* `get.ChinaTemp()`
+* `get.FlightsIdt()`
+* `get.LoansbyPurpose_minmaxDt()`
+* `get.LoansbyRiskLvs_minmaxDt()`
+* `get.LoansbyRiskLvs_qntlDt()`
+
+### Data sets from `dataSDA`
+
+* `get.Abalone()`
+* `get.age_cholesterol_weight.int()`
+* `get.airline_flights()`
+* `get.baseball.int()`
+* `get.bird.int()`
+* `get.blood_pressure.int()`
+* `get.car.int()`
+* `get.Face.iGAP()`
+* `get.finance.int()`
+* `get.horses.int()`
+* `get.lackinfo.int()`
+* `get.mushroom()`
+* `get.profession.int()`
+* `get.soccer.bivar.int()`
+* `get.veterinary.int()`
+
+
 # Descriptive statistics
 
 First we will construct a small example data set with $n=3$ units, to illustrate the computation of mean, variances and covariances. 

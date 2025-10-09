@@ -114,7 +114,7 @@ ddbiplot <- function(data, classes = NULL, group.aes = NULL, center = TRUE,
     else
     {
       means <- sapply(X, ddmean)
-      sd <- sapply(lapply(X, ddvar), sqrt)
+      sd <- sqrt(diag(WassL2var(X)))
       if (!center) {  X <- X
                       means <- rep(0, p)
                       sd <- rep(1, p)
@@ -151,4 +151,95 @@ ddbiplot <- function(data, classes = NULL, group.aes = NULL, center = TRUE,
                    Title = Title)
     class(object) <- "ddbiplot"
   object
+}
+
+# -----------------------------------------------------------------------
+
+#' Predict biplot samples
+#'
+#' @param bp an object of class \code{ddbiplot} obtained from preceding function \code{ddbiplot()}.
+#' @param samples logical TRUE to predict samples; which sample numbers to be implemented
+#' @param type either default \code{intervals} or \code{vertices}. Which unit
+#'             representation to predict
+#'
+#' @returns an object of class \code{ddbiplot} with additional component
+#'          \code{predict$samples}
+#' @export
+#'
+#' @examples
+#' ddbiplot(data = Oils.data) |> PCA() |>
+#'   prediction (type = "intervals") |> plot(type = "intervals")
+#'
+prediction <- function (bp, samples = TRUE, type = "intervals")
+{
+  p <- bp$p
+  n <- bp$n
+  Vr <- bp$Vr
+  Xhat <- vector("list", p)
+  for (j in 1:p)
+    Xhat[[j]] <- list (type = "interval",
+                       values = matrix (NA, nrow=bp$n, ncol=2))
+  if (type == "intervals")
+  {
+    mat <- vector("list", p)
+    centres <- sapply (bp$X, function(x) apply(x$value, 1, mean))
+    ZZ <- cbind(centres %*% Vr, centres %*% Vr)
+    for (j in 1:p)
+    {
+      Xlo <- Xup <- centres
+      Xlo[,j] <- bp$X[[j]]$values[,1]
+      Xup[,j] <- bp$X[[j]]$values[,2]
+      Zlo <- Xlo %*% Vr
+      Zup <- Xup %*% Vr
+      mat[[j]] <- list (Zlo, Zup)
+    }
+    mat.hat <- lapply (mat, function(x) list(x[[1]] %*% t(bp$Vr),
+                                             x[[2]] %*% t(bp$Vr)))
+    for (i in 1:n)
+    {
+      pred.i <-lapply (mat.hat, function(x)rbind(x[[1]][i,],x[[2]][i,]))
+      pred.mat <- NULL
+      for (k in 1:length(pred.i))
+        pred.mat <- rbind (pred.mat, pred.i[[k]])
+      for (j in 1:p)
+        Xhat[[j]]$values[i,] <- range(pred.mat[,j])
+    }
+  }
+  if (type == "vertices")
+  {
+    vertices.mat <- vector("list", n)
+    for (i in 1:n)
+      vertices.mat[[i]] <- create.vertices (bp$X, i)
+
+    vert.mat.hat <- lapply (vertices.mat, function(x)
+                                          x$vertices %*% Vr %*% t(Vr))
+    vert.hat <- lapply (vert.mat.hat, function(x)apply(x, 2, range))
+
+    for (j in 1:p)
+      for (i in 1:n)
+        Xhat[[j]]$values[i,] <- vert.hat[[i]][,j]
+  }
+  if (type == "diagonal")
+  {
+    X.lo <- X.up <- matrix (NA, nrow=n, ncol=p)
+    for (j in 1:p)
+      for (i in 1:n)
+      {
+        X.lo[i,j] <- bp$X[[j]]$values[i,1]
+        X.up[i,j] <- bp$X[[j]]$values[i,2]
+      }
+    Xstar.lo <- X.lo %*% Vr %*% t(Vr)
+    Xstar.up <- X.up %*% Vr %*% t(Vr)
+
+    for (j in 1:p)
+      for (i in 1:n)
+      {
+        Xhat[[j]]$values[i,1] <- min(Xstar.lo[i,j], Xstar.up[i,j])
+        Xhat[[j]]$values[i,2] <- max(Xstar.lo[i,j], Xstar.up[i,j])
+      }
+  }
+  for (j in 1:p)
+    Xhat[[j]]$values <- Xhat[[j]]$values*bp$sd[j] + bp$means[j]
+  bp$Xhat <- Xhat
+  bp
 }

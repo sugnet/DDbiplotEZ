@@ -19,6 +19,7 @@ create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
 {
   df <- as.data.frame(df)
   unit.names <- rownames(df)
+  if (is.null(unit.names)) unit.names <- 1:nrow(df)
   if (is.null(types))
   {  types <- c("categorical","numeric")[as.numeric(sapply (df, is.numeric))+1]
      cols <- 1:ncol(df)
@@ -64,6 +65,7 @@ create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
     if (types[j] == "numeric" | types[j] == "categorical")
     {
       new.var <- df[,current]
+      if (types[j]=="numeric") new.var <- as.numeric(new.var)
       names(new.var) <- unit.names
       new.var <- list (c("categorical","numeric")[is.numeric(new.var)+1], new.var)
       new.var.names <- c("type","values")
@@ -77,6 +79,7 @@ create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
     if (types[j] == "interval")
     {
       mat <- df[,(0:1)+current]
+      mat <- t(apply (mat, 1, as.numeric))
       mat <- t(apply (mat, 1, sort))
       rownames(mat) <- unit.names
       colnames(mat) <- c("lower","upper")
@@ -93,19 +96,21 @@ create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
     if (types[j] == "histogram")
     {
       intervals <- df[,(0:hist.n.int[j])+current]
+      intervals <- t(apply (intervals, 1, as.numeric))
       probs <- df[,(1:hist.n.int[j])+hist.n.int[j]+current]
-
+      probs <- t(apply (probs, 1, as.numeric))
       my.check <- apply (intervals, 1, function(x)all(order(x) == 1:length(x)))
       if (any(!my.check)) stop (paste("Histogram intervals for", unit.names[!my.check],
                                       "not in increasing order.\n"))
-      my.check <- (apply (probs, 1, sum, na.rm = TRUE) == 1)
+      my.check <- (abs(apply (probs, 1, sum, na.rm = TRUE) - 1)<1e-13)
       if (any(!my.check)) stop (paste("Histogram proportions for", unit.names[!my.check],
                                       "do not add up to 1.\n"))
       for (i in 1:nrow(probs))
-        if (sum(probs[i,1:(length(intervals[i,!is.na(intervals[i,])])-1)]) != 1)
+        if (abs(sum(probs[i,1:(length(intervals[i,!is.na(intervals[i,])])-1)]) - 1)>1e-13)
           stop (paste("Histogram proportions for", unit.names[i],
                       "correspond with NA intervals.\n"))
 
+      rownames(intervals) <- unit.names
       rownames(probs) <- unit.names
       new.var <- list ("histogram", intervals, probs)
       new.var.names <- c("type","intervals","proportions")

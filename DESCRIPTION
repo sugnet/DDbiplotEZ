@@ -20,7 +20,8 @@ Suggests:
     HistDAWass,
     knitr,
     rmarkdown,
-    withr
+    withr,
+    dataSDA
 VignetteBuilder: knitr
 Depends: 
     R (>= 3.5)

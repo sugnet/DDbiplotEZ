@@ -2,7 +2,7 @@
 #' Generic Plotting function of objects of class ddPCA_intervals
 #'
 #' @param x An object of class \code{ddPCA_intervals}.
-#' @param type either "vertices" or "intervals" with default \code{"vertices"}
+#' @param type either "vertices", "intervals" or "diagonal" with default \code{"vertices"}
 #' @param show.vertices a logical value with default \code{FALSE}, used to add or omit
 #'                      the vertices themselves when representing the vertices matrix
 #'                      with a convexhull.
@@ -141,16 +141,20 @@ plot.ddPCA_intervals <- function(x, type = "vertices", show.vertices = FALSE, ex
 #        }
 
         # Samples
-        type <- c("intervals","vertices")[pmatch (type, c("intervals","vertices"))]
+        type <- c("intervals","vertices","diagonal")[pmatch (type, c("intervals","vertices","diagonal"))]
         if (is.null(x$intervals)) x <- intervals(x)
         if (is.null(x$vertices)) x <- vertices(x)
         if (type == "vertices")
-          if  (!is.null(x$intervals$which))
+          if  (!is.null(x$vertices$which))
             .interval.asvertices (x$X, x$Vr, x$group.aes, x$vertices, show.vertices, x$n, x$g.names, NULL,
                                   rep(1,x$n), usr, x$alpha.bag.outside, x$alpha.bag.aes)
         if (type == "intervals")
-          if  (!is.null(x$vertices$which))
+          if  (!is.null(x$intervals$which))
             .interval.asint (x$X, x$Vr, x$group.aes, x$intervals, x$n, x$p, x$g.names, NULL,
+                             rep(1,x$n), usr, x$alpha.bag.outside, x$alpha.bag.aes)
+        if (type == "diagonal")
+          if  (!is.null(x$intervals$which))
+            .interval.asdiag (x$X, x$Vr, x$group.aes, x$intervals, x$n, x$p, x$g.names, NULL,
                              rep(1,x$n), usr, x$alpha.bag.outside, x$alpha.bag.aes)
 
         # New samples
@@ -281,22 +285,39 @@ plot.ddPCA_intervals <- function(x, type = "vertices", show.vertices = FALSE, ex
     }
     if (vertices.aes$label[i])
     {
-      text.pos <- match(vertices.aes$label.side[j], c("bottom", "left", "top", "right"))
-      if (vertices.aes$label.side[j] == "bottom") { Zx <- mean(range(Zmat[,1]))
-                                                    Zy <- min(Zmat[,2])
+      text.pos <- match(vertices.aes$label.side[i],
+                        c("bottom", "left", "top", "right", "middle"))
+      pos.given <- TRUE
+      if (vertices.aes$label.side[i] == "bottom")
+        { Zx <- mean(range(Zmat[,1]))
+          Zy <- min(Zmat[,2])
+        }
+      if (vertices.aes$label.side[i] == "left")
+        { Zx <- min(Zmat[,1])
+          Zy <- mean(range(Zmat[,2]))
+        }
+      if (vertices.aes$label.side[i] == "top")
+        { Zx <- mean(range(Zmat[,1]))
+          Zy <- max(Zmat[,2])
+        }
+      if (vertices.aes$label.side[i] == "right")
+        { Zx <- max(Zmat[,1])
+          Zy <- mean(range(Zmat[,2]))
+        }
+      if (vertices.aes$label.side[i] == "middle")
+      { Zx <- mean(range(Zmat[,1]))
+        Zy <- mean(range(Zmat[,2]))
+        adj <- c(0.5, 0.5)
+        pos.given <- FALSE
       }
-      if (vertices.aes$label.side[j] == "left") { Zx <- min(Zmat[,1])
-                                               Zy <- mean(range(Zmat[,2]))
-      }
-      if (vertices.aes$label.side[j] == "top") { Zx <- mean(range(Zmat[,1]))
-                                              Zy <- max(Zmat[,2])
-      }
-      if (vertices.aes$label.side[j] == "right") { Zx <- max(Zmat[,1])
-                                                Zy <- mean(range(Zmat[,2]))
-      }
-      graphics::text(Zx, Zy, labels = vertices.aes$label.name[i],
-                     cex = vertices.aes$label.cex[i], col = vertices.aes$label.col[i],
-                     pos = text.pos, offset = vertices.aes$label.offset[i])
+      if (pos.given)
+        graphics::text(Zx, Zy, labels = vertices.aes$label.name[i],
+                       cex = vertices.aes$label.cex[i], col = vertices.aes$label.col[i],
+                       pos = text.pos, offset = vertices.aes$label.offset[i])
+      else
+        graphics::text(Zx, Zy, labels = vertices.aes$label.name[i],
+                       cex = vertices.aes$label.cex[i], col = vertices.aes$label.col[i],
+                       adj = adj, offset = vertices.aes$label.offset[i])
     }
   }
 }
@@ -398,22 +419,202 @@ plot.ddPCA_intervals <- function(x, type = "vertices", show.vertices = FALSE, ex
   label.aes <- label.aes[show.labels,]
   if (nrow(label.aes) > 0)
   for (i in 1:nrow(label.aes))
-    {  text.pos <- match(label.aes$label.side[i], c("bottom", "left", "top", "right"))
-       if (label.aes$label.side[i] == "bottom") { Zx <- mean(ZZ[i,c(1,3)])
-                                                 Zy <- ZZ[i,2]
-                                               }
-       if (label.aes$label.side[i] == "left") { Zx <- ZZ[i,1]
-                                                Zy <- mean(ZZ[i,c(2,4)])
-                                              }
-       if (label.aes$label.side[i] == "top") { Zx <- mean(ZZ[i,c(1,3)])
-                                               Zy <- ZZ[i,4]
-                                             }
-       if (label.aes$label.side[i] == "right") { Zx <- ZZ[i,3]
-                                                 Zy <- mean(ZZ[i,c(2,4)])
-                                               }
+    {  text.pos <- match(label.aes$label.side[i],
+                         c("bottom", "left", "top", "right", "mid.bottom", "mid.left", "mid.right", "mid.top"))
+       pos.given <- TRUE
+       if (label.aes$label.side[i] == "bottom")
+         { Zx <- mean(ZZ[i,c(1,3)])
+           Zy <- ZZ[i,2]
+         }
+       if (label.aes$label.side[i] == "mid.bottom")
+         { Zx <- mean(ZZ[i,c(1,3)])
+           Zy <- mean(ZZ[i,c(2,4)]) - (label.aes$label.offset[i]-0.5)
+           adj <- c(0.5,1)
+           pos.given <- FALSE
+         }
+       if (label.aes$label.side[i] == "left")
+         { Zx <- ZZ[i,1]
+           Zy <- mean(ZZ[i,c(2,4)])
+         }
+       if (label.aes$label.side[i] == "mid.left")
+         { Zx <- mean(ZZ[i,c(1,3)]) - (label.aes$label.offset[i]-0.5)
+           Zy <- mean(ZZ[i,c(2,4)])
+           adj <- c(1,0.5)
+           pos.given <- FALSE
+         }
+       if (label.aes$label.side[i] == "top")
+         { Zx <- mean(ZZ[i,c(1,3)])
+           Zy <- ZZ[i,4]
+         }
+       if (label.aes$label.side[i] == "mid.top")
+         { Zx <- mean(ZZ[i,c(1,3)])
+           Zy <- mean(ZZ[i,c(2,4)]) + (label.aes$label.offset[i]-0.5)
+           adj <- c(0.5,0)
+           pos.given <- FALSE
+         }
+       if (label.aes$label.side[i] == "right")
+         { Zx <- ZZ[i,3]
+           Zy <- mean(ZZ[i,c(2,4)])
+         }
+       if (label.aes$label.side[i] == "mid.right")
+         { Zx <- mean(ZZ[i,c(1,3)]) + (label.aes$label.offset[i]-0.5)
+           Zy <- mean(ZZ[i,c(2,4)])
+           adj <- c(0,0.5)
+           pos.given <- FALSE
+         }
        if (label.aes$label[i])
-         graphics::text(Zx, Zy, labels = label.aes$names[i],
-                        cex = label.aes$label.cex[i], col = label.aes$label.col[i],
-                        pos = text.pos, offset = label.aes$label.offset[i])
+         {
+           if (pos.given)
+             graphics::text(Zx, Zy, labels = label.aes$names[i],
+                            cex = label.aes$label.cex[i], col = label.aes$label.col[i],
+                            pos = text.pos, offset = label.aes$label.offset[i])
+           else
+             graphics::text(Zx, Zy, labels = label.aes$names[i],
+                            cex = label.aes$label.cex[i], col = label.aes$label.col[i],
+                            adj = adj)
+         }
     }
+}
+
+#' Plot PCA of interval scaled data as diagonals
+#'
+#' @param X an object of class \code{ddPCA_intervals}.
+#' @param Vr the matrix to transform the data to principal components.
+#' @param group.aes a vector identifying groups of aesthetic formatting.
+#' @param interval.aes a list returned as the \code{interval} component from the
+#'                       function \code{intervals()}.
+#' @param n the number of units.
+#' @param p the number of interval variables.
+#' @param g.names a vector identifying groups for aesthetic formatting.
+#' @param too.small a cut-off value for minimum predictivity to show on the biplot
+#' @param lwd.vec a factor to illustrate predictivity with line widths.
+#' @param usr the current plotting region.
+#' @param alpha.bag.outside units to plot outside an alpha-bag.
+#' @param alpha.bag.aes the aesthetic formatting for alpha-bags.
+#'
+#' @noRd
+#'
+.interval.asdiag <- function (X, Vr, group.aes, interval.aes, n, p, g.names, too.small,
+                             lwd.vec, usr = usr, alpha.bag.outside, alpha.bag.aes)
+{
+  # - only performed once for all variables:
+  #This is to plot the points outside the alphabag
+  which.intervals <- rep(FALSE, n)
+  if(!is.null(alpha.bag.outside)){
+    for (j in 1:length(alpha.bag.aes$which))
+      which.intervals[group.aes == g.names[interval.aes$which[j]]] <- alpha.bag.outside[[j]]
+  }
+  else {
+    for (j in 1:length(interval.aes$which))
+      which.intervals[group.aes == g.names[interval.aes$which[j]]] <- TRUE
+  }
+  groups <- levels(group.aes)
+
+  # - done for each of the n units:
+  for (i in 1:n)
+  {
+    if (!which.intervals[i]) next
+    X.lo <- X.up <- NULL
+    for (j in 1:p)
+    {
+      X.lo <- c(X.lo, X[[j]]$values[i,1])
+      X.up <- c(X.up, X[[j]]$values[i,2])
+    }
+    Xmat <- rbind (X.lo, X.up)
+    Zmat <- Xmat %*% Vr
+
+    x.vals <- Zmat[, 1]
+    y.vals <- Zmat[, 2]
+    invals <- x.vals < usr[2] & x.vals > usr[1] & y.vals < usr[4] & y.vals > usr[3]
+    if(!any(invals)) next
+
+    plot.col <- interval.aes$col[group.aes[i]]
+    plot.pch <- interval.aes$pch[group.aes[i]]
+    plot.cex <- interval.aes$cex[group.aes[i]]
+    plot.lwd <- interval.aes$lwd[group.aes[i]]
+    plot.lty <- interval.aes$lty[group.aes[i]]
+
+    if (!is.null(too.small)) warning ("predictivities to be implemented")
+      graphics::lines(x=Zmat[,1], y=Zmat[,2], col = plot.col, lwd = plot.lwd, lty = plot.lty)
+    if (interval.aes$label[i])
+    {
+      text.pos <- match(interval.aes$label.side[i],
+                        c("bottom", "left", "top", "right",
+                          "mid.bottom", "mid.left", "mid.right", "mid.top",
+                          "bottom.left", "bottom.right", "top.left", "top.right"))
+      pos.given <- TRUE
+      if (interval.aes$label.side[i] == "bottom")
+        { Zx <- mean((Zmat[,1]))
+          Zy <- min(Zmat[,2])
+        }
+      if (interval.aes$label.side[i] == "mid.bottom")
+      { Zx <- mean(Zmat[,1])
+        Zy <- mean(Zmat[,2]) - (interval.aes$label.offset[i]-0.5)
+        adj <- c(0.5, 1)
+        pos.given <- FALSE
+      }
+      if (interval.aes$label.side[i] == "bottom.left")
+      { Zx <- min(Zmat[,1]) - (interval.aes$label.offset[i]-0.5)
+        Zy <- min(Zmat[,2]) - (interval.aes$label.offset[i]-0.5)
+        adj <- c(1, 1)
+        pos.given <- FALSE
+      }
+      if (interval.aes$label.side[i] == "bottom.right")
+      { Zx <- max(Zmat[,1]) + (interval.aes$label.offset[i]-0.5)
+        Zy <- min(Zmat[,2]) - (interval.aes$label.offset[i]-0.5)
+        adj <- c(0, 1)
+        pos.given <- FALSE
+      }
+      if (interval.aes$label.side[i] == "left")
+        { Zx <- min(Zmat[,1])
+          Zy <- mean(Zmat[,2])
+        }
+      if (interval.aes$label.side[i] == "mid.left")
+      { Zx <- mean(Zmat[,1]) - (interval.aes$label.offset[i]-0.5)
+        Zy <- mean(Zmat[,2])
+        adj <- c(1, 0.5)
+        pos.given <- FALSE
+      }
+      if (interval.aes$label.side[i] == "top")
+        { Zx <- mean(Zmat[,1])
+          Zy <- max(Zmat[,2])
+        }
+      if (interval.aes$label.side[i] == "mid.top")
+      { Zx <- mean(Zmat[,1])
+        Zy <- mean(Zmat[,2]) + (interval.aes$label.offset[i]-0.5)
+        adj <- c(0.5, 0)
+        pos.given <- FALSE
+      }
+      if (interval.aes$label.side[i] == "top.left")
+      { Zx <- min(Zmat[,1]) - (interval.aes$label.offset[i]-0.5)
+        Zy <- max(Zmat[,2]) + (interval.aes$label.offset[i]-0.5)
+        adj <- c(1, 0)
+        pos.given <- FALSE
+      }
+      if (interval.aes$label.side[i] == "top.right")
+      { Zx <- max(Zmat[,1]) + (interval.aes$label.offset[i]-0.5)
+        Zy <- max(Zmat[,2]) + (interval.aes$label.offset[i]-0.5)
+        adj <- c(0, 0)
+        pos.given <- FALSE
+      }
+      if (interval.aes$label.side[i] == "right")
+        { Zx <- max(Zmat[,1])
+          Zy <- mean(Zmat[,2])
+        }
+      if (interval.aes$label.side[i] == "mid.right")
+      { Zx <- mean(Zmat[,1]) + (interval.aes$label.offset[i]-0.5)
+        Zy <- mean(Zmat[,2])
+        adj <- c(0, 0.5)
+        pos.given <- FALSE
+      }
+      if (pos.given)
+        graphics::text(Zx, Zy, labels = interval.aes$label.name[i],
+                     cex = interval.aes$label.cex[i], col = interval.aes$label.col[i],
+                     pos = text.pos, offset = interval.aes$label.offset[i])
+      else
+        graphics::text(Zx, Zy, labels = interval.aes$label.name[i],
+                       cex = interval.aes$label.cex[i], col = interval.aes$label.col[i],
+                       adj = adj)
+    }
+  }
 }

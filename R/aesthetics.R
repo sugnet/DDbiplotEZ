@@ -1,8 +1,9 @@
-# ----------------------------------------------------------------------------------------------
 #' Format aesthetics for intervals
 #'
 #' @description
-#' This function allows the user to format the aesthetics for the units.
+#' This function allows the user to format the aesthetics for the units when
+#' units are displayed as \code{type = "intervals"} or \code{type = "diagonal"}
+#' in \code{plot()}.
 #'
 #' @param bp an object of class \code{ddbiplot}.
 #' @param which a vector containing the groups or classes for which the intervals should be
@@ -20,12 +21,18 @@
 #' @param label.cex a vector of the same length as \code{which} with label text expansions for the
 #'                  intervals, with default \code{0.75}.
 #' @param label.side the side at which the label of the interval appears, with default
-#'                   \code{bottom}. Note that unlike the argument \code{pos} in \code{text()},
-#'                   options are "\code{bottom}", "\code{left}", "\code{top}", "\code{right}" and
-#'                   not \code{1}, \code{2}, \code{3}, \code{4}.
+#'                   \code{bottom}.  Note that unlike the argument \code{pos} in \code{text()},
+#'                   options are not \code{1}, \code{2}, \code{3}, \code{4}, but "\code{bottom}",
+#'                   "\code{left}", "\code{top}", "\code{right}" and in addition "\code{mid.bottom}",
+#'                   "\code{mid.left}", "\code{mid.right}", "\code{mid.top}", "\code{bottom.left}",
+#'                   "\code{bottom.right}", "\code{top.left}", and "\code{top.right}" are also allowed.
+#'                   The latter four options only take effect when the \code{type} argument in \code{plot}
+#'                   is "\code{diagonal}".
 #' @param label.offset the offset of the label from the interval. See \code{?text} for a
-#'                     detailed explanation of the argument \code{offset}.
-#'
+#'                     detailed explanation of the argument \code{offset} when \code{label.side} is one of
+#'                     "\code{bottom}", "\code{left}", "\code{top}", "\code{right}". For the other options
+#'                     of \code{label.side}, the \code{label.offset} values is applied as \code{offset}-0.5
+#'                     units in the plot.
 #' @return The object of class \code{ddbiplot} will be appended with a list called \code{intervals}
 #'         containing the following elements:
 #' \item{which}{a vector containing the groups or classes for which the samples (and means) are
@@ -147,7 +154,8 @@ intervals <- function (bp,  which = 1:bp$g, col = biplotEZ:::ez.col, lwd = 1, lt
 #' Format aesthetics for vertices representation
 #'
 #' @description
-#' This function allows the user to format the aesthetics for the units.
+#' This function allows the user to format the aesthetics for the units
+#' displayed based on the vertices matrix.
 #'
 #' @param bp an object of class \code{ddbiplot}.
 #' @param which a vector containing the groups or classes for which the vertices should be
@@ -169,7 +177,9 @@ intervals <- function (bp,  which = 1:bp$g, col = biplotEZ:::ez.col, lwd = 1, lt
 #' @param label.side the side at which the label of the unit appears, with default
 #'                   \code{bottom}. Note that unlike the argument \code{pos} in \code{text()},
 #'                   options are "\code{bottom}", "\code{left}", "\code{top}", "\code{right}" and
-#'                   not \code{1}, \code{2}, \code{3}, \code{4}.
+#'                   not \code{1}, \code{2}, \code{3}, \code{4}. In addition, there is an option
+#'                   "\code{middel}" to place the label centred at the centroid of the vertices. If
+#'                   this option is selected, the \code{offset} argument is ignored.
 #' @param label.offset the offset of the label from the plotted vertices. See \code{?text} for a
 #'                     detailed explanation of the argument \code{offset}.
 #' @param type either \code{"connect"} to connect vertices in full space such as a cube in 3D or

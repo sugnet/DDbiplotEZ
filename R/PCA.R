@@ -18,8 +18,6 @@ biplotEZ::PCA
 #'                           optimally approximated in the biplot. If \code{TRUE}, the correlations between
 #'                           variables are optimally approximated by the cosine of the angles between
 #'                           axes. Default is \code{FALSE}.
-#' @param Wasserstein a logical value with default \code{FALSE}. If \code{TRUE}
-#'                    the covariance matrix is computed based on the L2 Wasserstein distance.
 #'
 #' @return an object of class \code{ddPCA}, inherits from class \code{ddbiplot}.
 #' @export
@@ -29,7 +27,7 @@ biplotEZ::PCA
 #'
 PCA.ddbiplot <- function (bp, dim.biplot = c(2, 1, 3), e.vects = 1:bp$p, group.aes=NULL,
                         show.class.means = FALSE, correlation.biplot=FALSE,
-                        Wasserstein = FALSE)
+                        ...)
 {
 
   dim.biplot <- dim.biplot[1]
@@ -48,20 +46,16 @@ PCA.ddbiplot <- function (bp, dim.biplot = c(2, 1, 3), e.vects = 1:bp$p, group.a
   X <- bp$X
   n <- bp$n
   p <- bp$p
-  if (Wasserstein)
+  if (bp$scaled)
   {
-    if (bp$scaled)
-    {
-      Xtemp <- vector("list", length(X))
-      for (k in 1:p) Xtemp[[k]] <- X[[k]]
-      for (k in 1:p) Xtemp[[k]]$values <- X[[k]]$values*bp$sd[k]
-      Smat <- WassL2var(Xtemp)
-      bp$sd <- sqrt(diag(Smat))
-      for (k in 1:p) X[[k]]$values <- Xtemp[[k]]$values/bp$sd[k]
-    }
-    else Smat <- WassL2var(X)
+    Xtemp <- vector("list", length(X))
+    for (k in 1:p) Xtemp[[k]] <- X[[k]]
+    for (k in 1:p) Xtemp[[k]]$values <- X[[k]]$values*bp$sd[k]
+    Smat <- WassL2var(Xtemp)
+    bp$sd <- sqrt(diag(Smat))
+    for (k in 1:p) X[[k]]$values <- Xtemp[[k]]$values/bp$sd[k]
   }
-  else Smat <- ddcovmat(X)
+  else Smat <- WassL2var(X)
 
   svd.out <- svd(Smat)
   V.mat <- svd.out$v

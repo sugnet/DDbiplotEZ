@@ -21,7 +21,7 @@
 \arguments{
 \item{x}{An object of class \code{ddPCA_intervals}.}
 
-\item{type}{either "vertices" or "intervals" with default \code{"vertices"}}
+\item{type}{either "vertices", "intervals" or "diagonal" with default \code{"vertices"}}
 
 \item{show.vertices}{a logical value with default \code{FALSE}, used to add or omit
 the vertices themselves when representing the vertices matrix
