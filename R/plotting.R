@@ -180,7 +180,8 @@ plot.ddPCA_intervals <- function(x, type = "vertices", show.vertices = FALSE, ex
         # Legends
         if (!is.null(x$legend))
         {
-          x$samples$col <- x$intervals$col
+          if (type == "vertices") x$sample$col <- x$vertices$col
+          else x$samples$col <- x$intervals$col
           if (is.null(x$samples$col)) x$samples$col <- x$vertices$col
           x$samples$pch <- rep(15,length(x$samples$col))
           x$samples$which <- x$intervals$which

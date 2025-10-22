@@ -53,7 +53,7 @@ toy.data <- data.frame(
 )
 rownames(toy.data) <- paste0 ("sample", 1:5)
 
-sample.names <- c("Linseed", "Perilla", "Cotton", "Sesame", "Cmellia", "Olive", "Beef", "Hog")
+sample.names <- c("Linseed", "Perilla", "Cotton", "Sesame", "Camellia", "Olive", "Beef", "Hog")
 Spec.gravity <- list(c(0.93, 0.94),
                      c(0.93, 0.94),
                      c(0.92, 0.92),
@@ -124,15 +124,15 @@ class(Oils.data) <- "ddobj"
 
 # ----- Credit card data
 
-tmp <- new.env()
-load("G:\\My Drive\\My Documents\\Navorsing\\Projekte\\Symbolic Data Analysis\\credicard_dataset.RDATA", envir = tmp)
-tmpdata <- tmp$CreditCard_symbDF
-colnames (tmpdata) <- gsub (" min", "", colnames (tmpdata))
-Creditcard.data <- create.ddobj (tmpdata,
-                                 types = rep("interval", 5),
-                                  cols = c(1, 3, 5, 7, 9))
-rm(tmpdata)
-rm(tmp)
+#tmp <- new.env()
+#load("G:\\My Drive\\My Documents\\Navorsing\\Projekte\\Symbolic Data Analysis\\credicard_dataset.RDATA", envir = tmp)
+#tmpdata <- tmp$CreditCard_symbDF
+#colnames (tmpdata) <- gsub (" min", "", colnames (tmpdata))
+#Creditcard.data <- create.ddobj (tmpdata,
+#                                 types = rep("interval", 5),
+#                                  cols = c(1, 3, 5, 7, 9))
+#rm(tmpdata)
+#rm(tmp)
 
 
 ### ===================================================================

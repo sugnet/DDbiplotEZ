@@ -46,17 +46,8 @@ PCA.ddbiplot <- function (bp, dim.biplot = c(2, 1, 3), e.vects = 1:bp$p, group.a
   X <- bp$X
   n <- bp$n
   p <- bp$p
-  if (bp$scaled)
-  {
-    Xtemp <- vector("list", length(X))
-    for (k in 1:p) Xtemp[[k]] <- X[[k]]
-    for (k in 1:p) Xtemp[[k]]$values <- X[[k]]$values*bp$sd[k]
-    Smat <- WassL2var(Xtemp)
-    bp$sd <- sqrt(diag(Smat))
-    for (k in 1:p) X[[k]]$values <- Xtemp[[k]]$values/bp$sd[k]
-  }
-  else Smat <- WassL2var(X)
 
+  Smat <- WassL2var(X)
   svd.out <- svd(Smat)
   V.mat <- svd.out$v
   Lambda.mat <- diag(svd.out$d)
@@ -81,7 +72,6 @@ PCA.ddbiplot <- function (bp, dim.biplot = c(2, 1, 3), e.vects = 1:bp$p, group.a
       names(Z) <- c("lo","up")
     }
   }
-
 
   if (correlation.biplot)
     ax.one.unit <- NULL
