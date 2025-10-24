@@ -21,7 +21,9 @@ Suggests:
     knitr,
     rmarkdown,
     withr,
-    dataSDA
+    dataSDA,
+    tibble,
+    MAINT.Data
 VignetteBuilder: knitr
 Depends: 
     R (>= 3.5)

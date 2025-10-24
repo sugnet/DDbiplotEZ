@@ -14,6 +14,6 @@ Obtain the data set from the package \code{dataSDA} and convert is into a \code{
 for use in \code{ddbiplot()}.
 }
 \examples{
-age.chol.wt.data <- get.age_cholosterol_weight()
+age.chol.wt.data <- get.age_cholesterol_weight.int()
 
 }

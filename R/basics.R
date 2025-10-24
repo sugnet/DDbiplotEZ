@@ -157,12 +157,12 @@ create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
 }
 
 # ----------------------------------------------------------------------------------------------
-#' Generic print function for objects of class ddobj
+#' Generic summary function for objects of class ddobj
 #'
 #' @description
-#' This function is used to print output when the biplot object is created.
+#' This function is used to summarise a distributional data object.
 #'
-#' @param x an object of class \code{ddobj}.
+#' @param object an object of class \code{ddobj}.
 #' @param ... additional arguments.
 #'
 #' @return This function will not produce a return value, it is called for side effects.
@@ -171,26 +171,26 @@ create.ddobj <- function(df, types=NULL, cols=NULL, n.int=NULL, n.cat=NULL)
 #' @examples
 #' my.obj <- create.ddobj (toy.data, type=c("numeric","interval","histogram","categorical", "modal"),
 #'           cols = c(1, 2, 4, 13, 14), n.int=4, n.cat=3)
-#' print (my.obj)
+#' summary (my.obj)
 #'
-print.ddobj <- function (x, ...)
+summary.ddobj <- function (object, ...)
 {
-  unit.names <- switch(x[[1]]$type,
-                         numeric = names(x[[1]]$values),
-                         interval = rownames(x[[1]]$values),
-                         histogram = rownames(x[[1]]$intervals),
-                         categorical = names(x[[1]]$values),
-                         modal = names(x[[1]]$cats))
+  unit.names <- switch(object[[1]]$type,
+                         numeric = names(object[[1]]$values),
+                         interval = rownames(object[[1]]$values),
+                         histogram = rownames(object[[1]]$intervals),
+                         categorical = names(object[[1]]$values),
+                         modal = names(object[[1]]$cats))
   n <- length(unit.names)
 
   cat ("An object of class ddobj with", n, "units\n")
   print (unit.names)
-  cat ("\n  containing", length(x), "distributional data variables.\n")
+  cat ("\n  containing", length(object), "distributional data variables.\n")
 
-  for (j in 1:length(x))
+  for (j in 1:length(object))
   {
-    this.list <- x[[j]]
-    cat ("\n", names(x)[j], ":", this.list$type, "\n")
+    this.list <- object[[j]]
+    cat ("\n", names(object)[j], ":", this.list$type, "\n")
     if (this.list$type=="numeric")
     {
       print (stats::quantile(this.list$values, (0:4)/4))
@@ -229,6 +229,71 @@ print.ddobj <- function (x, ...)
 #  invisible (x)
 }
 
+# ----------------------------------------------------------------------------------------------
+#' Generic print function for objects of class ddobj
+#'
+#' @description
+#' This function is used to print a distributional data object.
+#'
+#' @param x an object of class \code{ddobj}.
+#' @param ... additional arguments.
+#'
+#' @return This function will not produce a return value, it is called for side effects.
+#'
+#' @export
+#' @examples
+#' my.obj <- create.ddobj (toy.data, type=c("numeric","interval","histogram","categorical", "modal"),
+#'           cols = c(1, 2, 4, 13, 14), n.int=4, n.cat=3)
+#' print (my.obj)
+#'
+print.ddobj <- function (x, ...)
+{
+  if (!requireNamespace("tibble", quietly = TRUE)) {
+    stop("Package 'tibble' is required for this function. Please install it.", call. = FALSE)
+  }
+  unit.names <- switch(x[[1]]$type,
+                       numeric = names(x[[1]]$values),
+                       interval = rownames(x[[1]]$values),
+                       histogram = rownames(x[[1]]$intervals),
+                       categorical = names(x[[1]]$values),
+                       modal = names(x[[1]]$cats))
+  n <- length(unit.names)
+  tb <- NULL
+
+  for (j in 1:length(x))
+  {
+    this.list <- x[[j]]
+    if (this.list$type=="numeric" | this.list$type =="categorical")
+      this.str <- this.list$values
+
+    if (this.list$type=="interval")
+      this.str <- paste (paste0("[",format(this.list$values[,1],digits = 3),","),
+                         paste0(format(this.list$values[,2],digits = 3),"]"))
+
+    if (this.list$type=="histogram")
+    {
+      this.str <- NULL
+      for (k in 1:ncol(this.list$proportions))
+        this.str <- paste (this.str,
+                           paste0("[",format(this.list$intervals[,k],digits = 3),","),
+                           paste0(format(this.list$intervals[,k+1],digits = 3),"],"),
+                           format(this.list$proportions[,k],digits=3))
+    }
+
+    if (this.list$type=="modal")
+    {
+      this.str <- NULL
+      for (k in 1:ncol(this.list$categories))
+        this.str <- paste (this.str,
+                           this.list$categories[,k],
+                           paste0("(", format(this.list$proportions[,k],digits=3),")"))
+    }
+    tb <- tibble::tibble (tb, this.str)
+    colnames(tb)[ncol(tb)] <- names(x)[j]
+  }
+  tb <- tibble::tibble (units = unit.names, tb)
+  print(tb)
+}
 # ----------------------------------------------------------------------------------------------
 #' Summarise a data set into a distributional data object
 #'

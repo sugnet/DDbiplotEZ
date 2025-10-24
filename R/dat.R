@@ -124,6 +124,21 @@ class(Oils.data) <- "ddobj"
 
 # ----- Credit card data
 
+#'  Credit card data.
+#'
+#' A data set containing 10 units with five interval scaled variables.
+#'
+#' @format An object of class \code{ddobj}. A list of length 5:
+#' \describe{
+#'   \item{Food}{interval scaled variable}
+#'   \item{Social}{interval scaled variable}
+#'   \item{Travel}{interval scaled variable}
+#'   \item{Gas}{interval scaled variable}
+#'   \item{Clothes}{numeric variable}
+#'   }
+#'
+#'   "Creditcard.data"
+#'
 #tmp <- new.env()
 #load("G:\\My Drive\\My Documents\\Navorsing\\Projekte\\Symbolic Data Analysis\\credicard_dataset.RDATA", envir = tmp)
 #tmpdata <- tmp$CreditCard_symbDF
@@ -326,7 +341,7 @@ get.Abalone <- function ()
 #' for use in \code{ddbiplot()}.
 #'
 #' @examples
-#' age.chol.wt.data <- get.age_cholosterol_weight()
+#' age.chol.wt.data <- get.age_cholesterol_weight.int()
 #'
 get.age_cholesterol_weight.int <- function ()
 {
