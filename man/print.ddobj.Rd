@@ -18,7 +18,7 @@ This function will not produce a return value, it is called for side effects.
 This function is used to print a distributional data object.
 }
 \examples{
-my.obj <- create.ddobj (toy.data, type=c("numeric","interval","histogram","categorical", "modal"),
+my.obj <- create_ddobj (toy.data, type=c("numeric","interval","histogram","categorical", "modal"),
           cols = c(1, 2, 4, 13, 14), n.int=4, n.cat=3)
 print (my.obj)
 

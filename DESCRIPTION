@@ -5,7 +5,7 @@ Version: 0.1.0
 Authors@R: c(
     person(
       "Sugnet", "Lubbe",
-      email = "slubbe@sun.ac.za",
+      email = "muvisu@sun.ac.za",
       role = c("aut", "cre")
     )
   )
@@ -14,7 +14,6 @@ Description: More about what it does (maybe more than one line).
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.2
 Suggests: 
     ggplot2,
     HistDAWass,
@@ -26,6 +25,9 @@ Suggests:
     MAINT.Data
 VignetteBuilder: knitr
 Depends: 
-    R (>= 3.5)
+    biplotEZ,
+    R (>= 4.1.0)
 Imports: 
-    biplotEZ
+    MASS,
+    sp
+Config/roxygen2/version: 8.1.0

@@ -1,4 +1,176 @@
-#' Computes the mean of a distributional data object
+#' Computes the Frechet mean's quantile function
+#'
+#' @param x an object of class \code{ddobj}
+#' @param j the number(s) of the variable(s) for which the quantile function is computed.
+#'          If \code{j} is null, the computation is performed for all variables.
+#'
+#' @returns a the quantile function
+#' @export
+#'
+#' @examples
+#' obj <- suminto_ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+#' ddQmean (obj, j=1)(seq(from=0, to=1, len=20))
+#'
+ddQmean <- function (x, j)
+{
+  n <- switch(x[[1]]$type,
+              numeric   = length(x[[1]]$values),
+              interval  = nrow(x[[1]]$values),
+              histogram = nrow(x[[1]]$intervals))
+
+  # Precompute quantile functions for this j
+  Qfuns <- lapply(seq_len(n), function(i)
+    quantij(x, i = i, j = j)
+  )
+
+  # Return a single function
+  function(tvec) {
+    tvec <- as.vector(tvec)
+    Qmat <- sapply(Qfuns, function(f) f(tvec))
+    if (is.null(dim(Qmat))) mean(Qmat) else rowMeans(Qmat)
+  }
+}
+
+# ------------------------------------------------------------------------------
+
+#' Computes the variance or covariance based on Wasserstein distance of
+#' (a) distributional data object(s)
+#'
+#' @param x an object of class \code{ddojb}
+#'
+#' @description
+#' This function computes variances and covariances based on the \eqn{L_2} Wasserstein
+#' distance as defined in Irpino and Verde (2015).
+#'
+#' @references
+#' Irpino, A. and Verde, R. 2015. Basic statistics for distributional symbolic variables:
+#' a new metric-based approach. Advances in Data Analysis and Classification, 9(2), pp.143-157.
+#'
+#' @returns variance-covariance matrix
+#' @export
+#'
+#' @examples
+#' obj <- suminto_ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+#' ddvarW (obj)
+#'
+ddvarW <- function (x)
+{
+  if (!requireNamespace("HistDAWass", quietly = TRUE)) {
+    stop("Package 'HistDAWass' is required for this function. Please install it.",
+         call. = FALSE)
+  }
+
+  get.c.and.r <- function (intervals)
+  {
+    s <- length(intervals)
+    c.vec <- (intervals[-1] + intervals[-s])/2
+    r.vec <- diff(intervals)/2
+    list (c=c.vec, r=r.vec)
+  }
+
+  n <- switch(x[[1]]$type,
+              numeric = length(x[[1]]$values),
+              interval = nrow(x[[1]]$values),
+              histogram = nrow(x[[1]]$intervals))
+  unit.names <- switch(x[[1]]$type,
+                         numeric = names(x[[1]]$values),
+                         interval = rownames(x[[1]]$values),
+                         histogram = rownames(x[[1]]$intervals))
+  p <- length (x)
+  distrH.list <- vector ("list", n*p)
+  i <- 0
+  for (j in 1:p)
+  {
+    if (x[[j]]$type == "numeric") x[[j]] <- num_to_int (x[[j]])
+    if (x[[j]]$type == "interval") x[[j]] <- int_to_hist (x[[j]])
+    for (h in 1:n)
+    {
+      i <- i + 1
+      distrH.list[[i]] <- hist_to_distrH(x[[j]], i=h)
+    }
+  }
+#  x <- uniformly.dense.intervals(x)
+#  s <- dim(x$dens.int)[3] - 1
+#  c.list <- r.list <- vector("list", p)
+
+#  for (j in 1:p)
+#  {
+#    cj.mat <- rj.mat <- matrix(0, nrow=n, ncol=s)
+#    intervals.j <- x$dens.int[,j,]
+
+#    for (i in 1:n) {
+#      out <- get.c.and.r(intervals.j[i, ])
+#      cj.mat[i, ] <- out$c
+#      rj.mat[i, ] <- out$r
+#    }
+#    c.list[[j]] <- cj.mat
+#    r.list[[j]] <- rj.mat
+#  }
+
+#  Cmean <- lapply(c.list, colMeans)
+#  Rmean <- lapply(r.list, colMeans)
+#  pvec <- x$proportions
+
+#  mat <- matrix(0, nrow=p, ncol=p)
+#  for (j in 1:p) {
+#    cj.min.mean <- sweep(c.list[[j]], 2, Cmean[[j]])
+#    rj.min.mean <- sweep(r.list[[j]], 2, Rmean[[j]])
+#    for (k in j:p) {
+#      ck.min.mean <- sweep(c.list[[k]], 2, Cmean[[k]])
+#      rk.min.mean <- sweep(r.list[[k]], 2, Rmean[[k]])
+
+#      sum.1.to.n <- ((cj.min.mean * ck.min.mean) + (rj.min.mean * rk.min.mean)/3)
+#      sum.1.to.n <- apply (sum.1.to.n, 1, function (x) x * pvec)
+#      mat[j, k] <- sum(sum.1.to.n) / n
+#    }
+#  }
+
+#  diag.val <- diag(mat)
+#  mat <- mat + t(mat)
+#  diag(mat) <- diag.val
+
+#  mat
+  MatHobj <- HistDAWass::MatH (distrH.list, nrow=n, ncol=p)
+  out <- HistDAWass::WH.var.covar(MatHobj)
+  rownames (out) <- colnames (out) <- names(x)
+  out
+}
+
+# -------------------------------------------------------------------------------------
+
+#' Computes the correlation based on Wasserstein distance of distributional data objects
+#'
+#' @param x an object of class \code{ddojb}
+#'
+#' @description
+#' This function computes correlations from the variances and covariances based on the
+#' \eqn{L_2} Wasserstein distance as defined in Irpino and Verde (2015).
+#'
+#' @references
+#' Irpino, A. and Verde, R. 2015. Basic statistics for distributional symbolic variables:
+#' a new metric-based approach. Advances in Data Analysis and Classification, 9(2), pp.143-157.
+#'
+#' @returns correlation matrix
+#' @export
+#'
+#' @examples
+#' obj <- suminto_ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+#' ddcorW (obj)
+#'
+ddcorW <- function (x)
+{
+  covmat <- ddvarW (x)
+  SDs <- diag(sqrt(diag(covmat)))
+  out <- solve(SDs) %*% covmat %*% solve(SDs)
+  rownames (out) <- colnames (out) <- names(x)
+  out
+}
+
+
+# ===============================================================================================
+
+
+#' Computes the mean of a distributional data object as defined by Billard (2008)
 #'
 #' @param x a list, typically a single component of an object of class \code{ddojb}
 #'
@@ -17,7 +189,7 @@
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+#' obj <- suminto_ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 #' ddmean (obj$ncases)
 #' ddmean (obj$ncontrols)
 #'
@@ -45,7 +217,7 @@ ddmean <- function (x)
 
 # ----------------------------------------------------------------------------------------------
 
-#' Computes the variance or covariance of (a) distributional data object(s)
+#' Computes the variance or covariance of (a) distributional data object(s) as defined by Billard (2008)
 #'
 #' @param x a list, typically a single component of an object of class \code{ddojb}
 #' @param y optional, a list, typically a single component of an object of class \code{ddojb}. If
@@ -66,11 +238,11 @@ ddmean <- function (x)
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
-#' ddvar (obj$ncases) # variance
-#' ddvar (obj$ncases, obj$ncontrols) # covariance
+#' obj <- suminto_ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+#' ddvarB (obj$ncases) # variance
+#' ddvarB (obj$ncases, obj$ncontrols) # covariance
 #'
-ddvar <- function (x, y)
+ddvarB <- function (x, y)
 {
   # --- variance
   if (missing(y))
@@ -89,7 +261,7 @@ ddvar <- function (x, y)
     {
       nn <- ncol(x$intervals)
       temp <- (x$intervals[,-nn]^2 + x$intervals[,-nn]*x$intervals[,-1] + x$intervals[,-1]^2) *
-                 x$proportions
+        x$proportions
       var.val <- sum(apply(temp, 1, sum, na.rm = TRUE))/(3*nrow(x$intervals)) - ddmean(x)^2
     }
 
@@ -98,13 +270,13 @@ ddvar <- function (x, y)
   # --- covariance
   else
   {
-    ddcov (x,y)
+    ddcovB (x,y)
   }
 }
 
 # ----------------------------------------------------------------------------------------------
 
-#' Computes the covariance of two distributional data objects
+#' Computes the covariance of two distributional data objects as defined by Billard (2008)
 #'
 #' @param x a list, typically a single component of an object of class \code{ddobj}
 #' @param y a list, typically a single component of an object of class \code{ddobj}
@@ -124,18 +296,18 @@ ddvar <- function (x, y)
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
-#' ddcov (obj$ncases, obj$ncontrols)
+#' obj <- suminto_ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+#' ddcovB (obj$ncases, obj$ncontrols)
 #'
-ddcov <- function (x, y)
+ddcovB <- function (x, y)
 {
   cov.val <- NA
 
   # --- interval scaled - histogram scaled variables
   if (x$type == "interval" & y$type == "histogram")
-  {  x <- int.to.hist (x)  }
+  {  x <- int_to_hist (x)  }
   if (x$type == "histogram" & y$type == "interval")
-  { y <- int.to.hist (y)  }
+  { y <- int_to_hist (y)  }
 
   # --- interval scaled - interval scaled variables
   if (x$type == "interval" & y$type == "interval")
@@ -146,9 +318,9 @@ ddcov <- function (x, y)
     mean.k <- ddmean(y)
     for (i in 1:nrow(x$values))
       tot <- tot + (2 * (x$values[i,1] - mean.j) * (y$values[i,1] - mean.k) +
-                    (x$values[i,1] - mean.j) * (y$values[i,2] - mean.k) +
-                    (x$values[i,2] - mean.j) * (y$values[i,1] - mean.k) +
-                    2* (x$values[i,2] - mean.j) * (y$values[i,2] - mean.k))
+                      (x$values[i,1] - mean.j) * (y$values[i,2] - mean.k) +
+                      (x$values[i,2] - mean.j) * (y$values[i,1] - mean.k) +
+                      2* (x$values[i,2] - mean.j) * (y$values[i,2] - mean.k))
     cov.val <- tot / (6*nrow(x$values))
   }
 
@@ -171,16 +343,16 @@ ddcov <- function (x, y)
     mat.Uk[is.na(mat.Uk)] <- 0
 
     cov.val <- sum(2 * t(mat.Lj) %*% mat.Lk +
-                 t(mat.Lj) %*% mat.Uk +
-                 t(mat.Uj) %*% mat.Lk +
-                 2 * t(mat.Uj) %*% mat.Uk)/(6*nrow(x$intervals))
+                     t(mat.Lj) %*% mat.Uk +
+                     t(mat.Uj) %*% mat.Lk +
+                     2 * t(mat.Uj) %*% mat.Uk)/(6*nrow(x$intervals))
   }
   cov.val
 }
 
 # ----------------------------------------------------------------------------------------------
 
-#' Computes the correlation of two distributional data objects
+#' Computes the correlation of two distributional data objects as defined by Billard (2008)
 #'
 #' @param x a list, typically a single component of an object of class \code{ddojb}
 #' @param y a list, typically a single component of an object of class \code{ddojb}
@@ -189,17 +361,17 @@ ddcov <- function (x, y)
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
-#' ddcor (obj$ncases, obj$ncontrols)
+#' obj <- suminto_ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+#' ddcorB (obj$ncases, obj$ncontrols)
 #
-ddcor <- function (x, y)
+ddcorB <- function (x, y)
 {
-  ddvar(x,y)/sqrt(ddvar(x)*ddvar(y))
+  ddvarB(x,y)/sqrt(ddvarB(x)*ddvarB(y))
 }
 
 # ----------------------------------------------------------------------------------------------
 
-#' Computes the covariance matrix of distributional data variables
+#' Computes the covariance matrix of distributional data variables as defined by Billard (2008)
 #'
 #' @param obj an object of class \code{ddobj}
 #'
@@ -207,26 +379,27 @@ ddcor <- function (x, y)
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
-#' ddcovmat (obj)
+#' obj <- suminto_ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+#' ddcovmatB (obj)
 
-ddcovmat <- function (obj)
+ddcovmatB <- function (obj)
 {
   p <- length(obj)
   mat <- matrix (0, nrow=p, ncol=p)
   for (j in 1:p)
     for (k in j:p)
-      if (j==k) mat[j,k] <- ddvar(obj[[j]])
-      else mat[j,k] <- ddcov(obj[[j]], obj[[k]])
+      if (j==k) mat[j,k] <- ddvarB(obj[[j]])
+  else mat[j,k] <- ddcovB(obj[[j]], obj[[k]])
   var.vec <- diag(mat)
   mat <- mat + t(mat)
   diag(mat) <- var.vec
+  rownames (mat) <- colnames (mat) <- names(obj)
   mat
 }
 
 # ----------------------------------------------------------------------------------------------
 
-#' Computes the correlation matrix of distributional data variables
+#' Computes the correlation matrix of distributional data variables as defined by Billard (2008)
 #'
 #' @param obj an object of class \code{ddobj}
 #'
@@ -234,101 +407,18 @@ ddcovmat <- function (obj)
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
-#' ddcormat (obj)
+#' obj <- suminto_ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+#' ddcormatB (obj)
 
-ddcormat <- function (obj)
+ddcormatB <- function (obj)
 {
   p <- length(obj)
   mat <- matrix (0, nrow=p, ncol=p)
   for (j in 1:(p-1))
     for (k in (j+1):p)
-      mat[j,k] <- ddcor(obj[[j]], obj[[k]])
+      mat[j,k] <- ddcorB(obj[[j]], obj[[k]])
   mat <- mat + t(mat)
   diag(mat) <- 1
+  rownames (mat) <- colnames (mat) <- names(obj)
   mat
-}
-
-# ===============================================================================================
-
-#' Computes the L2 Wasserstein variance or covariance of (a) distributional data object(s)
-#'
-#' @param x an object of class \code{ddojb}
-#'
-#' @description
-#' This function uses the \code{WH.var.covar} method from the \code{HistDAWass} package to
-#' compute variances and covariances. Interval scaled data are converted to histogram
-#' scaled with a single bin and proportion = 1.
-#'
-#' @references
-#' Irpino, A. and Verde, R. 2015. Basic statistics for distributional symbolic variables:
-#' a new metric-based approach. Advances in Data Analysis and Classification, 9(2), pp.143-157.
-#'
-#' @returns variance-covariance matrix
-#' @export
-#'
-#' @examples
-#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
-#' WassL2var (obj)
-#'
-WassL2var <- function (x)
-{
-  hist.to.distrH <- function (a, i)
-  {
-    int <- as.numeric(a$intervals[i,])
-    int <- int[!is.na(int)]
-    prop <- as.numeric(a$proportions[i,])
-    prop <- prop[!is.na(prop)]
-    HistDAWass::distributionH (x = int, p = c(0,cumsum(prop)))
-  }
-
-  n <- switch(x[[1]]$type,
-              numeric = length(x[[1]]$values),
-              interval = nrow(x[[1]]$values),
-              histogram = nrow(x[[1]]$intervals))
-  unit.names <- switch(x[[1]]$type,
-                         numeric = names(x[[1]]$values),
-                         interval = rownames(x[[1]]$values),
-                         histogram = rownames(x[[1]]$intervals))
-  p <- length (x)
-  distrH.list <- vector ("list", n*p)
-  i <- 0
-  for (j in 1:p)
-  {
-    if (x[[j]]$type == "numeric") x[[j]] <- num.to.int (x[[j]])
-    if (x[[j]]$type == "interval") x[[j]] <- int.to.hist (x[[j]])
-    for (h in 1:n)
-      { i <- i + 1
-        distrH.list[[i]] <- hist.to.distrH(x[[j]], i=h)
-      }
-  }
-  MatHobj <- HistDAWass::MatH (distrH.list, nrow=n, ncol=p)
-  HistDAWass::WH.var.covar (MatHobj)
-}
-
-#' Computes the L2 Wasserstein correlation matrix of distributional data object(s)
-#'
-#' @param x an object of class \code{ddojb}
-#'
-#' @description
-#' This function uses the \code{WH.var.covar} method from the \code{HistDAWass} package to
-#' compute correlations. Interval scaled data are converted to histogram
-#' scaled with a single bin and proportion = 1.
-#'
-#' @references
-#' Irpino, A. and Verde, R. 2015. Basic statistics for distributional symbolic variables:
-#' a new metric-based approach. Advances in Data Analysis and Classification, 9(2), pp.143-157.
-#'
-#' @returns correlation matrix
-#' @export
-#'
-#' @examples
-#' obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
-#' WassL2cor (obj)
-#'
-WassL2cor <- function (x)
-{
-  covmat <- WassL2var (x)
-  SDs <- diag(sqrt(diag(covmat)))
-  solve(SDs) %*% covmat %*% solve(SDs)
 }

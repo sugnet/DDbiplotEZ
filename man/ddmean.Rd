@@ -2,7 +2,7 @@
 % Please edit documentation in R/descriptives.R
 \name{ddmean}
 \alias{ddmean}
-\title{Computes the mean of a distributional data object}
+\title{Computes the mean of a distributional data object as defined by Billard (2008)}
 \usage{
 ddmean(x)
 }
@@ -20,7 +20,7 @@ scaled variable, it should be a list with component \code{$type = "histogram"} a
 \code{intervals} and \code{proportions}.
 }
 \examples{
-obj <- suminto.ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
+obj <- suminto_ddobj (esoph, units = "agegp", interval="ncases", histogram="ncontrols")
 ddmean (obj$ncases)
 ddmean (obj$ncontrols)
 

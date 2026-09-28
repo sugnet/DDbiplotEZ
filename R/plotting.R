@@ -1,15 +1,13 @@
 # ----------------------------------------------------------------------------------------------
-#' Generic Plotting function of objects of class ddPCA_intervals
+#' Generic Plotting function of objects of class ddPCA
 #'
 #' @param x An object of class \code{ddPCA_intervals}.
-#' @param type either "vertices", "intervals" or "diagonal" with default \code{"vertices"}
-#' @param show.vertices a logical value with default \code{FALSE}, used to add or omit
-#'                      the vertices themselves when representing the vertices matrix
-#'                      with a convexhull.
 #' @param exp.factor a numeric value with default axes of the biplot. Larger values are specified
 #'                   for zooming out with respect to sample points in the biplot display and smaller
 #'                   values are specified for zooming in with respect to sample points in the biplot
 #'                   display.
+#' @param simulation.n the number of simulated values to obtain a non-parametric density
+#'                     estimate of the distribution of a unit in the biplot space
 #' @param axis.predictivity either a logical or a numeric value between \code{0} and \code{1}. If
 #'                          it is a numeric value, this value is used as threshold so that only axes
 #'                          with axis predictivity larger than the threshold is displayed. If
@@ -29,23 +27,22 @@
 #'
 #' @importFrom biplotEZ axes legend.type
 #'
-#' @return An object of class \code{ddPCA_intervals}.
+#' @return An object of class \code{ddPCA}.
 #'
 #' @export
 #'
 #' @examples
-#' obj <- suminto.ddobj (mtcars, units = "cyl", interval=c("mpg","disp","hp"))
+#' obj <- suminto_ddobj (mtcars, units = "cyl", interval=c("mpg","disp","hp"))
 #' ddbiplot(data = obj) |> PCA() |> plot()
-plot.ddPCA_intervals <- function(x, type = "vertices", show.vertices = FALSE, exp.factor=1.2, axis.predictivity=NULL,
+plot.ddPCA <- function(x, exp.factor=1.2, simulation.n = 1000, axis.predictivity=NULL,
                                  sample.predictivity=NULL, zoom = FALSE, add = FALSE, xlim = NULL,
                                  ylim = NULL, ...)
 {
   if (is.null(x$Z)) stop ("Add a biplot method before generating a plot")
-  else Z <- x$Z
-  allZ <- rbind (Z$lo, Z$up)
+  Z <- do.call(rbind, x$Z)
 
-  #aesthetics for intervals
-  if (is.null(x$intervals)) x <- intervals(x)
+  #aesthetics for units
+  if (is.null(x$units)) x <- units(x)
 
   if (add) zoom <- FALSE
   if(zoom)
@@ -73,13 +70,13 @@ plot.ddPCA_intervals <- function(x, type = "vertices", show.vertices = FALSE, ex
     else # Plot 2D biplot
     {
       if(is.null(xlim) & is.null(ylim)){
-        xlim <- range(allZ[, 1] * exp.factor)
-        ylim <- range(allZ[, 2] * exp.factor)
+        xlim <- range(Z[, 1] * exp.factor)
+        ylim <- range(Z[, 2] * exp.factor)
       }
 
       # Start with empty plot
       if (!add)
-        plot(allZ[, 1] * exp.factor, allZ[, 2] * exp.factor, xlim = xlim, ylim = ylim,
+        plot(Z[, 1] * exp.factor, Z[, 2] * exp.factor, xlim = xlim, ylim = ylim,
              xaxt = "n", yaxt = "n", xlab = "", ylab = "", type = "n", xaxs = "i", yaxs = "i", asp = 1)
 
       usr <- graphics::par("usr")
@@ -96,34 +93,20 @@ plot.ddPCA_intervals <- function(x, type = "vertices", show.vertices = FALSE, ex
       too.small <- NULL
       if (!is.null(axis.predictivity)) stop ("axis predictivity not yet implemented")
 
+      Xmat <- NULL
+      for (j in x$numeric.vars)
+      {
+        if (x$raw.X[[j]]$type != "histogram") Xmat <- cbind (Xmat, range(x$raw.X[[j]]$values, na.rm=TRUE))
+        else Xmat <- cbind (Xmat, range(x$raw.X[[j]]$intervals, na.rm=TRUE))
+      }
+      Xmat[2,] <- ifelse (Xmat[2,]-Xmat[1,] < .Machine$double.eps^0.4, Xmat[2,]+0.1, Xmat[2,])
       if (length(ax.aes$which) > 0)
         {
-          Xhat <- allZ %*% solve(x$Lmat)[x$e.vects,]
-          if (x$scaled) Xhat <- scale(Xhat, center=FALSE, scale=1/x$sd)
-          if (x$center) Xhat <- scale(Xhat, center=-1*x$means, scale=FALSE)
-
-          if(!is.null(x$PCOaxes))
-          { if (x$PCOaxes == "splines")
-            {
-              allX <- sapply(x$X, function(z) return (z$values))
-              z.axes <- lapply(1:length(ax.aes$which), biplotEZ:::biplot.spline.axis, allZ, allX,
-                             means=x$means, sd=x$sd, n.int=ax.aes$ticks,
-                             spline.control=x$spline.control)
-              biplotEZ:::.nonlin.axes.plot(z.axes, ax.aes, predict.mat, too.small, usr=usr, x=x)
-            }
-            else if(x$PCOaxes == "regression")
-                   {
-                     z.axes <- lapply(1:length(ax.aes$which), biplotEZ:::.calibrate.axis, Xhat, x$means, x$sd, x$ax.one.unit, ax.aes$which,
-                               ax.aes$ticks, ax.aes$orthogx, ax.aes$orthogy)
-                     biplotEZ:::.lin.axes.plot(z.axes, ax.aes, predict.mat, too.small,usr=usr,predict_which=x$predict$which)
-                   }
-          }
-          else
-          { # Otherwise calibrate linear axes
-            z.axes <- lapply(1:length(ax.aes$which), biplotEZ:::.calibrate.axis, Xhat, x$means, x$sd, x$ax.one.unit, ax.aes$which,
+            z.axes <- lapply(1:length(ax.aes$which), biplotEZ:::.calibrate.axis, Xmat,
+                             x$means, x$sd, x$ax.one.unit, ax.aes$which,
                              ax.aes$ticks, ax.aes$orthogx, ax.aes$orthogy)
             biplotEZ:::.lin.axes.plot(z.axes, ax.aes, predict.mat, too.small,usr=usr,predict_which=x$predict$which)
-          }
+        }
 
          # Interpolate new axes
         if(!is.null(x$newvariable)) stop ("new variables not yet implemented")
@@ -140,22 +123,11 @@ plot.ddPCA_intervals <- function(x, type = "vertices", show.vertices = FALSE, ex
 #            cex.vec <- x$sample.predictivity
 #        }
 
-        # Samples
-        type <- c("intervals","vertices","diagonal")[pmatch (type, c("intervals","vertices","diagonal"))]
-        if (is.null(x$intervals)) x <- intervals(x)
-        if (is.null(x$vertices)) x <- vertices(x)
-        if (type == "vertices")
-          if  (!is.null(x$vertices$which))
-            .interval.asvertices (x$X, x$Vr, x$group.aes, x$vertices, show.vertices, x$n, x$g.names, NULL,
-                                  rep(1,x$n), usr, x$alpha.bag.outside, x$alpha.bag.aes)
-        if (type == "intervals")
-          if  (!is.null(x$intervals$which))
-            .interval.asint (x$X, x$Vr, x$group.aes, x$intervals, x$n, x$p, x$g.names, NULL,
-                             rep(1,x$n), usr, x$alpha.bag.outside, x$alpha.bag.aes)
-        if (type == "diagonal")
-          if  (!is.null(x$intervals$which))
-            .interval.asdiag (x$X, x$Vr, x$group.aes, x$intervals, x$n, x$p, x$g.names, NULL,
-                             rep(1,x$n), usr, x$alpha.bag.outside, x$alpha.bag.aes)
+        # Units
+          if  (!is.null(x$units$which))
+            .unitsplot (x$X, x$Vr, x$Z, simulation.n, x$group.aes, x$units,
+                        x$n, x$p, x$g.names, NULL,
+                        usr, x$alpha.bag.outside, x$alpha.bag.aes)
 
         # New samples
         if (!is.null(x$Znew)) warning ("new sample not yet implememnted") #if (is.null(x$newsamples)) x <- newsamples(x)
@@ -180,17 +152,14 @@ plot.ddPCA_intervals <- function(x, type = "vertices", show.vertices = FALSE, ex
         # Legends
         if (!is.null(x$legend))
         {
-          if (type == "vertices") x$sample$col <- x$vertices$col
-          else x$samples$col <- x$intervals$col
-          if (is.null(x$samples$col)) x$samples$col <- x$vertices$col
+          x$samples$col <- x$units$col
           x$samples$pch <- rep(15,length(x$samples$col))
-          x$samples$which <- x$intervals$which
-          if (is.null(x$samples$which)) x$samples$which <- x$vertices$which
+          x$samples$which <- x$units$which
           do.call(biplotEZ:::biplot.legend, list(bp=x, x$legend.arglist))
         }
       }
 
-    }
+
 
   }
 
@@ -206,416 +175,150 @@ plot.ddPCA_intervals <- function(x, type = "vertices", show.vertices = FALSE, ex
     arguments$xlim <- c(a$x,b$x)[order(c(a$x,b$x))]
     arguments$ylim <- c(a$y,b$y)[order(c(a$y,b$y))]
     grDevices::dev.off()
-    do.call(plot.ddPCA_intervals,arguments)
+    do.call(plot.ddPCA,arguments)
   }
 
   invisible(x)
 }
 
-#' Plot PCA of interval scaled data for the vertices
+#' Plot units in the biplot
 #'
 #' @param X an object of class \code{ddPCA_intervals}.
 #' @param Vr the matrix to transform the data to principal components.
+#' @param ZZ a list of coordinates of the vertices of the units
+#' @param simulation.n the number of simulated values to obtain a non-parametric density
+#'                     estimate of the distribution of a unit in the biplot space
 #' @param group.aes a vector identifying groups of aesthetic formatting.
-#' @param vertices.aes a list returned as the \code{vertices} component from the
-#'                       function \code{vertices()}.
-#' @param show.vertices a logical value for adding or omitting the vertices with the
-#'                      convex hull.
+#' @param unit.aes a list returned as the \code{interval} component from the
+#'                       function \code{intervals()}.
 #' @param n the number of units.
+#' @param p the number of interval variables.
 #' @param g.names a vector identifying groups for aesthetic formatting.
 #' @param too.small a cut-off value for minimum predictivity to show on the biplot
-#' @param lwd.vec a factor to illustrate predictivity with line widths.
 #' @param usr the current plotting region.
 #' @param alpha.bag.outside units to plot outside an alpha-bag.
 #' @param alpha.bag.aes the aesthetic formatting for alpha-bags.
 #'
 #' @noRd
 #'
-.interval.asvertices <- function (X, Vr, group.aes, vertices.aes, show.vertices, n, g.names, too.small,
-                             lwd.vec, usr = usr, alpha.bag.outside, alpha.bag.aes)
+.unitsplot <- function (X, Vr, ZZ, simulation.n, group.aes, unit.aes, n, p, g.names, too.small,
+                             usr = usr, alpha.bag.outside, alpha.bag.aes)
 {
-  # - only performed once for all variables:
-  #This is to plot the points outside the alphabag
-  which.vertices <- rep(FALSE, n)
-  if(!is.null(alpha.bag.outside)){
-    for (j in 1:length(alpha.bag.aes$which))
-      which.vertices[group.aes == g.names[vertices.aes$which[j]]] <- alpha.bag.outside[[j]]
-  }
-  else {
-    for (j in 1:length(vertices.aes$which))
-      which.vertices[group.aes == g.names[vertices.aes$which[j]]] <- TRUE
-  }
+  which.units <- rep (FALSE, n)
+  for (j in 1:length(unit.aes$which))
+    which.units[group.aes == g.names[unit.aes$which[j]]] <- TRUE
   groups <- levels(group.aes)
 
-  # - done for each of the n units:
-  connection.mat <- NULL
   for (i in 1:n)
   {
-    if (!which.vertices[i]) next
-    out <- create.vertices(X, i)
-    Xmat <- out$vertices
-    Zmat <- Xmat %*% Vr
-
-    x.vals <- Zmat[, 1]
-    y.vals <- Zmat[, 2]
-    invals <- x.vals < usr[2] & x.vals > usr[1] & y.vals < usr[4] & y.vals > usr[3]
-    if(!any(invals)) next
-
-    plot.col <- vertices.aes$col[group.aes[i]]
-    plot.pch <- vertices.aes$pch[group.aes[i]]
-    plot.cex <- vertices.aes$cex[group.aes[i]]
-    plot.lwd <- vertices.aes$lwd[group.aes[i]]
-    plot.lty <- vertices.aes$lty[group.aes[i]]
-
-    if (!is.null(too.small)) warning ("predictivities to be implemented")
-    if (show.vertices) graphics::points (Zmat, col = plot.col, pch = plot.pch, cex=plot.cex)
-    if (vertices.aes$type == "convexhull")
-      graphics::polygon(Zmat[grDevices::chull(Zmat),], border = plot.col, lwd = plot.lwd, lty = plot.lty)
-
-    if (vertices.aes$type == "connect")
+    if (which.units[i])
     {
-      if (is.null(connection.mat))
+      X0mat <- matrix (nrow=simulation.n, ncol = p)
+      tval.mat <- matrix (stats::runif (simulation.n*p), ncol = p)
+      for (j in 1:p)
+        X0mat[,j] <- quantij(X, i=i, j=j)(tval.mat[,j])
+      Z <- X0mat %*% Vr
+
+      this.col <- grDevices::col2rgb(unit.aes$col[(1:nlevels(group.aes))[group.aes[i]==groups]], alpha=TRUE)
+      col0 <- grDevices::rgb (this.col[1], this.col[2], this.col[3], alpha=50, maxColorValue=255)
+      col1 <- grDevices::rgb (this.col[1], this.col[2], this.col[3], alpha=200, maxColorValue=255)
+      col.vec <- grDevices::colorRampPalette(c(col0, col1), alpha = TRUE)(100)
+
+      bw_x <- MASS::bandwidth.nrd(Z[, 1])
+      bw_y <- MASS::bandwidth.nrd(Z[, 2])
+      if (!(bw_x > 0) | !(bw_y > 0))
       {
-        out <- create.vertices (X, i, connect = TRUE)
-        connection.mat <- out$connections
-        if (nrow(connection.mat)==0) connection.mat <- matrix (1:2, nrow=1)
+        graphics::points (Z, col=col.vec[100], pch=16)
       }
-      for (k in 1:nrow(connection.mat))
-        graphics::lines (x = Zmat[connection.mat[k,],1], y = Zmat[connection.mat[k,],2],
-                         col = plot.col, lwd = plot.lwd, lty = plot.lty)
-    }
-    if (vertices.aes$label[i])
-    {
-      text.pos <- match(vertices.aes$label.side[i],
-                        c("bottom", "left", "top", "right", "middle"))
-      pos.given <- TRUE
-      if (vertices.aes$label.side[i] == "bottom")
-        { Zx <- mean(range(Zmat[,1]))
-          Zy <- min(Zmat[,2])
-        }
-      if (vertices.aes$label.side[i] == "left")
-        { Zx <- min(Zmat[,1])
-          Zy <- mean(range(Zmat[,2]))
-        }
-      if (vertices.aes$label.side[i] == "top")
-        { Zx <- mean(range(Zmat[,1]))
-          Zy <- max(Zmat[,2])
-        }
-      if (vertices.aes$label.side[i] == "right")
-        { Zx <- max(Zmat[,1])
-          Zy <- mean(range(Zmat[,2]))
-        }
-      if (vertices.aes$label.side[i] == "middle")
-      { Zx <- mean(range(Zmat[,1]))
-        Zy <- mean(range(Zmat[,2]))
-        adj <- c(0.5, 0.5)
-        pos.given <- FALSE
-      }
-      if (pos.given)
-        graphics::text(Zx, Zy, labels = vertices.aes$label.name[i],
-                       cex = vertices.aes$label.cex[i], col = vertices.aes$label.col[i],
-                       pos = text.pos, offset = vertices.aes$label.offset[i])
       else
-        graphics::text(Zx, Zy, labels = vertices.aes$label.name[i],
-                       cex = vertices.aes$label.cex[i], col = vertices.aes$label.col[i],
-                       adj = adj, offset = vertices.aes$label.offset[i])
+      {
+        Z.kde <- MASS::kde2d(Z[,1], Z[,2], h = c (bw_x, bw_y), n=200)
+        vertices.hull <- ZZ[[i]][grDevices::chull(ZZ[[i]]),]
+        hull <- rbind(vertices.hull, vertices.hull[1, ])
+        kde.grid <- expand.grid (Z.kde$x, Z.kde$y)
+        inside <- sp::point.in.polygon(kde.grid[,1], kde.grid[,2],
+                                       vertices.hull[,1], vertices.hull[,2])
+        Z.kde$z[!matrix(inside,nrow=length(Z.kde$x))] <- NA
+        if (all(is.na(Z.kde$z))) graphics::points (Z, col=col.vec[100], pch=16, cex=0.25)
+        else graphics::image (Z.kde, col=col.vec, add = TRUE)
+      }
+      if (unit.aes$label[i])
+      {
+        text.pos <- match(unit.aes$label.side[i],
+                          c("bottom", "left", "top", "right"))
+
+        if (unit.aes$label.side[i] == "bottom") { Zx <- mean(Z[,1], na.rm=TRUE)
+                                                   Zy <- min(Z[,2], na.rm=TRUE)
+                                                   pos <- 1
+        }
+        if (unit.aes$label.side[i] == "left") { Zx <- min(Z[,1], na.rm=TRUE)
+                                                 Zy <- mean(Z[,2], na.rm=TRUE)
+                                                 pos <- 2
+        }
+        if (unit.aes$label.side[i] == "top") { Zx <- mean(Z[i,1], na.rm=TRUE)
+                                                Zy <- max(Z[i,2], na.rm=TRUE)
+                                                pos <- 3
+        }
+        if (unit.aes$label.side[i] == "right") { Zx <- max(Z[i,1], na.rm=TRUE)
+                                                  Zy <- mean(Z[i,2], na.rm=TRUE)
+                                                  pos <- 4
+        }
+        graphics::text(Zx, Zy, labels = unit.aes$label.name[i],
+                       cex = unit.aes$label.cex[i], col = unit.aes$label.col[i],
+                       pos = pos, offset = unit.aes$label.offset[i])
+      }
     }
   }
 }
 
-#' Plot PCA of interval scaled data as intervals
-#'
-#' @param X an object of class \code{ddPCA_intervals}.
-#' @param Vr the matrix to transform the data to principal components.
-#' @param group.aes a vector identifying groups of aesthetic formatting.
-#' @param interval.aes a list returned as the \code{interval} component from the
-#'                       function \code{intervals()}.
-#' @param n the number of units.
-#' @param p the number of interval variables.
-#' @param g.names a vector identifying groups for aesthetic formatting.
-#' @param too.small a cut-off value for minimum predictivity to show on the biplot
-#' @param lwd.vec a factor to illustrate predictivity with line widths.
-#' @param usr the current plotting region.
-#' @param alpha.bag.outside units to plot outside an alpha-bag.
-#' @param alpha.bag.aes the aesthetic formatting for alpha-bags.
-#'
-#' @noRd
-#'
-.interval.asint <- function (X, Vr, group.aes, interval.aes, n, p, g.names, too.small,
-                             lwd.vec, usr = usr, alpha.bag.outside, alpha.bag.aes)
-{
-  # - only performed once for all variables:
-  #This is to plot the points outside the alphabag
-  which.intervals <- rep(FALSE, n)
-  if(!is.null(alpha.bag.outside)){
-    for (j in 1:length(alpha.bag.aes$which))
-      which.intervals[group.aes == g.names[interval.aes$which[j]]] <- alpha.bag.outside[[j]]
-  }
-  else {
-    for (j in 1:length(interval.aes$which))
-      which.intervals[group.aes == g.names[interval.aes$which[j]]] <- TRUE
-  }
-  groups <- levels(group.aes)
+#.calibrate.axis <-  function (j, Xhat, means, sd, axes.rows, ax.which, ax.tickvec,
+#            ax.orthogxvec, ax.orthogyvec)
+#{
+#  ax.num <- ax.which[j]
+#  tick <- ax.tickvec[j]
+#  ax.direction <- axes.rows[ax.num, ]
+#  r <- ncol(axes.rows)
+#  ax.orthog <- rbind(ax.orthogxvec, ax.orthogyvec)
+#  if (nrow(ax.orthog) < r)
+#    ax.orthog <- rbind(ax.orthog, 0)
+#  if (nrow(axes.rows) > 1)
+#    phi.vec <- diag(1/diag(axes.rows %*% t(axes.rows))) %*%
+#    axes.rows %*% ax.orthog[, ax.num]
+#  else phi.vec <- (1/(axes.rows %*% t(axes.rows))) %*% axes.rows %*%
+#    ax.orthog[, ax.num]
+#
+#  std.ax.tick.label <- if (X[[ax.num]]$type == "interval")
+#                         pretty (X[[ax.num]]$values, n = tick)
+#                       else pretty (X[[ax.num]]$intervals, n = tick)
+#  std.range <- range(std.ax.tick.label)
+#  std.ax.tick.label.min <- std.ax.tick.label - (std.range[2] - std.range[1])
+#  std.ax.tick.label.max <- std.ax.tick.label + (std.range[2] - std.range[1])
+#  std.ax.tick.label <- c(std.ax.tick.label, std.ax.tick.label.min,
+#                         std.ax.tick.label.max)
+#
+#  interval <- (std.ax.tick.label - ddQmean (X, ax.num)(0.5))/sd[j]
+#
+#  axis.vals <- sort(unique(interval))
+#  number.points <- length(axis.vals)
+#  axis.points <- matrix(0, nrow = number.points, ncol = r)
+#  for (i in 1:r) axis.points[, i] <- ax.orthog[i, ax.num] +
+#    (axis.vals - phi.vec[ax.num]) * ax.direction[i]
+#  axis.points <- cbind(axis.points, axis.vals * sd[j] + ddQmean (X, ax.num)(0.5))
+#  slope <- (axis.points[1, 2] - axis.points[2, 2])/(axis.points[1,
+#                                                                1] - axis.points[2, 1])
+#  v <- NULL
+#  if (is.na(slope)) {
+#    v <- axis.points[1, 1]
+#    slope = NULL
+#  }
+#  else if (abs(slope) == Inf) {
+#    v <- axis.points[1, 1]
+#    slope = NULL
+#  }
+#  intercept <- axis.points[1, 2] - slope * axis.points[1, 1]
+#  details <- list(a = intercept, b = slope, v = v)
+#  retvals <- list(coords = axis.points, a = intercept, b = slope,
+#                  v = v)
+#  return(retvals)
+#}
 
-  label.aes <- data.frame (no=1:n, shown=rep(FALSE, n), names=interval.aes$label.name,
-                           label=interval.aes$label, label.side = interval.aes$label.side,
-                           label.cex = interval.aes$label.cex,
-                           label.col = interval.aes$label.col,
-                           label.offset = interval.aes$label.offset)
-
-  centres <- sapply (X, function(x) apply(x$value, 1, mean))
-  ZZ <- cbind(centres%*%Vr,centres%*%Vr) # x-min, y-min, x-max, y-max for each unit
-
-  # - done for each of the p intervals:
-  for (j in 1:p)
-  {
-    Xlo <- Xup <- centres
-    Xlo[,j] <- X[[j]]$values[,1]
-    Xup[,j] <- X[[j]]$values[,2]
-    Zlo <- Xlo %*% Vr
-    Zup <- Xup %*% Vr
-
-    x.vals <- Zlo[, 1]
-    y.vals <- Zlo[, 2]
-    invals.lo <- x.vals < usr[2] & x.vals > usr[1] & y.vals < usr[4] & y.vals > usr[3]
-    x.vals <- Zup[, 1]
-    y.vals <- Zup[, 2]
-    invals.up <- x.vals < usr[2] & x.vals > usr[1] & y.vals < usr[4] & y.vals > usr[3]
-    invals <- invals.lo | invals.up
-    if(!any(invals)) next
-
-    plot.data <- data.frame (no=1:n, group.aes = group.aes, col = rep(NA,n),
-                             lwd = rep(NA,n), lwd.vec, lty = rep(NA,n), Zlo, Zup)
-    for(i in 1:length(interval.aes$which))
-    {
-      plot.data$col[group.aes == g.names[interval.aes$which[i]]] <- interval.aes$col[i]
-      plot.data$lwd[group.aes == g.names[interval.aes$which[i]]] <- interval.aes$lwd[i]
-      plot.data$lty[group.aes == g.names[interval.aes$which[i]]] <- interval.aes$lty[i]
-    }
-
-    plot.data <- plot.data[which.intervals,]
-    plot.data <- plot.data[invals[which.intervals],]
-    if (!is.null(too.small))
-      plot.data <- plot.data[-stats::na.omit(match(too.small, plot.data[,1])),]
-    label.aes$shown [match(plot.data$no, label.aes$no)] <- TRUE
-    min.x <- apply (plot.data[,c(7,9)],1,min)
-    ZZ[ZZ[,1]>min.x,1] <- min.x[ZZ[,1]>min.x]
-    max.x <- apply (plot.data[,c(7,9)],1,max)
-    ZZ[ZZ[,3]<max.x,3] <- max.x[ZZ[,3]<max.x]
-    min.y <- apply (plot.data[,c(8,10)],1,min)
-    ZZ[ZZ[,2]>min.y,2] <- min.y[ZZ[,2]>min.y]
-    max.y <- apply (plot.data[,c(8,10)],1,max)
-    ZZ[ZZ[,4]<max.y,4] <- max.y[ZZ[,4]<max.y]
-
-    plot.data <- plot.data[,-1]
-    unit.aes <- plot.data[,2:5]
-    plot.data <- plot.data[,-(1:5)]
-
-    for (i in 1:nrow(plot.data))
-      graphics::lines (x = plot.data[i,c(1,3)], y = plot.data[i,c(2,4)], col = unit.aes$col[i],
-                       lwd = unit.aes$lwd.vec[i] * unit.aes$lwd[i], lty = unit.aes$lty[i])
-  }
-  show.labels <- interval.aes$label & label.aes$shown
-  ZZ <- ZZ[show.labels,]
-  label.aes <- label.aes[show.labels,]
-  if (nrow(label.aes) > 0)
-  for (i in 1:nrow(label.aes))
-    {  text.pos <- match(label.aes$label.side[i],
-                         c("bottom", "left", "top", "right", "mid.bottom", "mid.left", "mid.right", "mid.top"))
-       pos.given <- TRUE
-       if (label.aes$label.side[i] == "bottom")
-         { Zx <- mean(ZZ[i,c(1,3)])
-           Zy <- ZZ[i,2]
-         }
-       if (label.aes$label.side[i] == "mid.bottom")
-         { Zx <- mean(ZZ[i,c(1,3)])
-           Zy <- mean(ZZ[i,c(2,4)]) - (label.aes$label.offset[i]-0.5)
-           adj <- c(0.5,1)
-           pos.given <- FALSE
-         }
-       if (label.aes$label.side[i] == "left")
-         { Zx <- ZZ[i,1]
-           Zy <- mean(ZZ[i,c(2,4)])
-         }
-       if (label.aes$label.side[i] == "mid.left")
-         { Zx <- mean(ZZ[i,c(1,3)]) - (label.aes$label.offset[i]-0.5)
-           Zy <- mean(ZZ[i,c(2,4)])
-           adj <- c(1,0.5)
-           pos.given <- FALSE
-         }
-       if (label.aes$label.side[i] == "top")
-         { Zx <- mean(ZZ[i,c(1,3)])
-           Zy <- ZZ[i,4]
-         }
-       if (label.aes$label.side[i] == "mid.top")
-         { Zx <- mean(ZZ[i,c(1,3)])
-           Zy <- mean(ZZ[i,c(2,4)]) + (label.aes$label.offset[i]-0.5)
-           adj <- c(0.5,0)
-           pos.given <- FALSE
-         }
-       if (label.aes$label.side[i] == "right")
-         { Zx <- ZZ[i,3]
-           Zy <- mean(ZZ[i,c(2,4)])
-         }
-       if (label.aes$label.side[i] == "mid.right")
-         { Zx <- mean(ZZ[i,c(1,3)]) + (label.aes$label.offset[i]-0.5)
-           Zy <- mean(ZZ[i,c(2,4)])
-           adj <- c(0,0.5)
-           pos.given <- FALSE
-         }
-       if (label.aes$label[i])
-         {
-           if (pos.given)
-             graphics::text(Zx, Zy, labels = label.aes$names[i],
-                            cex = label.aes$label.cex[i], col = label.aes$label.col[i],
-                            pos = text.pos, offset = label.aes$label.offset[i])
-           else
-             graphics::text(Zx, Zy, labels = label.aes$names[i],
-                            cex = label.aes$label.cex[i], col = label.aes$label.col[i],
-                            adj = adj)
-         }
-    }
-}
-
-#' Plot PCA of interval scaled data as diagonals
-#'
-#' @param X an object of class \code{ddPCA_intervals}.
-#' @param Vr the matrix to transform the data to principal components.
-#' @param group.aes a vector identifying groups of aesthetic formatting.
-#' @param interval.aes a list returned as the \code{interval} component from the
-#'                       function \code{intervals()}.
-#' @param n the number of units.
-#' @param p the number of interval variables.
-#' @param g.names a vector identifying groups for aesthetic formatting.
-#' @param too.small a cut-off value for minimum predictivity to show on the biplot
-#' @param lwd.vec a factor to illustrate predictivity with line widths.
-#' @param usr the current plotting region.
-#' @param alpha.bag.outside units to plot outside an alpha-bag.
-#' @param alpha.bag.aes the aesthetic formatting for alpha-bags.
-#'
-#' @noRd
-#'
-.interval.asdiag <- function (X, Vr, group.aes, interval.aes, n, p, g.names, too.small,
-                             lwd.vec, usr = usr, alpha.bag.outside, alpha.bag.aes)
-{
-  # - only performed once for all variables:
-  #This is to plot the points outside the alphabag
-  which.intervals <- rep(FALSE, n)
-  if(!is.null(alpha.bag.outside)){
-    for (j in 1:length(alpha.bag.aes$which))
-      which.intervals[group.aes == g.names[interval.aes$which[j]]] <- alpha.bag.outside[[j]]
-  }
-  else {
-    for (j in 1:length(interval.aes$which))
-      which.intervals[group.aes == g.names[interval.aes$which[j]]] <- TRUE
-  }
-  groups <- levels(group.aes)
-
-  # - done for each of the n units:
-  for (i in 1:n)
-  {
-    if (!which.intervals[i]) next
-    X.lo <- X.up <- NULL
-    for (j in 1:p)
-    {
-      X.lo <- c(X.lo, X[[j]]$values[i,1])
-      X.up <- c(X.up, X[[j]]$values[i,2])
-    }
-    Xmat <- rbind (X.lo, X.up)
-    Zmat <- Xmat %*% Vr
-
-    x.vals <- Zmat[, 1]
-    y.vals <- Zmat[, 2]
-    invals <- x.vals < usr[2] & x.vals > usr[1] & y.vals < usr[4] & y.vals > usr[3]
-    if(!any(invals)) next
-
-    plot.col <- interval.aes$col[group.aes[i]]
-    plot.pch <- interval.aes$pch[group.aes[i]]
-    plot.cex <- interval.aes$cex[group.aes[i]]
-    plot.lwd <- interval.aes$lwd[group.aes[i]]
-    plot.lty <- interval.aes$lty[group.aes[i]]
-
-    if (!is.null(too.small)) warning ("predictivities to be implemented")
-      graphics::lines(x=Zmat[,1], y=Zmat[,2], col = plot.col, lwd = plot.lwd, lty = plot.lty)
-    if (interval.aes$label[i])
-    {
-      text.pos <- match(interval.aes$label.side[i],
-                        c("bottom", "left", "top", "right",
-                          "mid.bottom", "mid.left", "mid.right", "mid.top",
-                          "bottom.left", "bottom.right", "top.left", "top.right"))
-      pos.given <- TRUE
-      if (interval.aes$label.side[i] == "bottom")
-        { Zx <- mean((Zmat[,1]))
-          Zy <- min(Zmat[,2])
-        }
-      if (interval.aes$label.side[i] == "mid.bottom")
-      { Zx <- mean(Zmat[,1])
-        Zy <- mean(Zmat[,2]) - (interval.aes$label.offset[i]-0.5)
-        adj <- c(0.5, 1)
-        pos.given <- FALSE
-      }
-      if (interval.aes$label.side[i] == "bottom.left")
-      { Zx <- min(Zmat[,1]) - (interval.aes$label.offset[i]-0.5)
-        Zy <- min(Zmat[,2]) - (interval.aes$label.offset[i]-0.5)
-        adj <- c(1, 1)
-        pos.given <- FALSE
-      }
-      if (interval.aes$label.side[i] == "bottom.right")
-      { Zx <- max(Zmat[,1]) + (interval.aes$label.offset[i]-0.5)
-        Zy <- min(Zmat[,2]) - (interval.aes$label.offset[i]-0.5)
-        adj <- c(0, 1)
-        pos.given <- FALSE
-      }
-      if (interval.aes$label.side[i] == "left")
-        { Zx <- min(Zmat[,1])
-          Zy <- mean(Zmat[,2])
-        }
-      if (interval.aes$label.side[i] == "mid.left")
-      { Zx <- mean(Zmat[,1]) - (interval.aes$label.offset[i]-0.5)
-        Zy <- mean(Zmat[,2])
-        adj <- c(1, 0.5)
-        pos.given <- FALSE
-      }
-      if (interval.aes$label.side[i] == "top")
-        { Zx <- mean(Zmat[,1])
-          Zy <- max(Zmat[,2])
-        }
-      if (interval.aes$label.side[i] == "mid.top")
-      { Zx <- mean(Zmat[,1])
-        Zy <- mean(Zmat[,2]) + (interval.aes$label.offset[i]-0.5)
-        adj <- c(0.5, 0)
-        pos.given <- FALSE
-      }
-      if (interval.aes$label.side[i] == "top.left")
-      { Zx <- min(Zmat[,1]) - (interval.aes$label.offset[i]-0.5)
-        Zy <- max(Zmat[,2]) + (interval.aes$label.offset[i]-0.5)
-        adj <- c(1, 0)
-        pos.given <- FALSE
-      }
-      if (interval.aes$label.side[i] == "top.right")
-      { Zx <- max(Zmat[,1]) + (interval.aes$label.offset[i]-0.5)
-        Zy <- max(Zmat[,2]) + (interval.aes$label.offset[i]-0.5)
-        adj <- c(0, 0)
-        pos.given <- FALSE
-      }
-      if (interval.aes$label.side[i] == "right")
-        { Zx <- max(Zmat[,1])
-          Zy <- mean(Zmat[,2])
-        }
-      if (interval.aes$label.side[i] == "mid.right")
-      { Zx <- mean(Zmat[,1]) + (interval.aes$label.offset[i]-0.5)
-        Zy <- mean(Zmat[,2])
-        adj <- c(0, 0.5)
-        pos.given <- FALSE
-      }
-      if (pos.given)
-        graphics::text(Zx, Zy, labels = interval.aes$label.name[i],
-                     cex = interval.aes$label.cex[i], col = interval.aes$label.col[i],
-                     pos = text.pos, offset = interval.aes$label.offset[i])
-      else
-        graphics::text(Zx, Zy, labels = interval.aes$label.name[i],
-                       cex = interval.aes$label.cex[i], col = interval.aes$label.col[i],
-                       adj = adj)
-    }
-  }
-}

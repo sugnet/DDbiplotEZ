@@ -8,8 +8,10 @@
 #' @param group.aes a vector identifying groups for aesthetic formatting.
 #' @param center a logical value indicating whether \code{data} should be variable centered,
 #'               with default \code{TRUE}.
-#' @param scaled a logical value indicating whether \code{data} should be standardised to unit
-#'               variable variances, with default \code{FALSE}.
+#' @param scaled default \code{NULL} for no scaling of the data. Other options are
+#'               \code{Billard} or \code{Wasserstein} to divide centred quantile functions
+#'               by the squareroot of the variance computed with \code{ddvarB} or
+#'               \code{ddvarW} respectively. Partial matching allowed.
 #' @param Title the title of the biplot to be rendered, enter text in "  ".
 #'
 #' @import biplotEZ
@@ -24,13 +26,14 @@
 #'          arguments \code{center} and \code{scaled}.}
 #' \item{Xcat}{categorical and modal part of the original \code{ddobj}.}
 #' \item{raw.X}{original \code{ddobj}.}
+#' \item{numeric.vars}{which of the variables in raw.X are contained in X.}
 #' \item{classes}{the vector of category levels for the class variable. This is to be used for
 #'                \code{colour}, \code{pch} and \code{cex} specifications.}
 #' \item{na.action}{the observations that have been removed.}
 #' \item{center}{a logical value indicating whether centering was applied.}
-#' \item{scaled}{a logical value indicating whether scaling was applied.}
-#' \item{means}{the means for each variable.}
-#' \item{sd}{the standard deviations for each variable.}
+#' \item{scaled}{one of \code{NULL} or \code{Billard} or \code{Wasserstein}.}
+#' \item{means}{the vector of means for each numeric, interval or histogram variable.}
+#' \item{sd}{the vector of standard deviations computed according to the specification in\code{scaled}.}
 #' \item{n}{the number of observations.}
 #' \item{p}{the number of variables.}
 #' \item{group.aes}{the vector of category levels for the grouping variable. This is to be used
@@ -39,8 +42,8 @@
 #' \item{g}{the number of groups.}
 #' \item{Title}{the title of the biplot rendered}
 #'
-#' @usage ddbiplot(data, classes = NULL, group.aes = NULL, center = TRUE, scaled = FALSE,
-#' Title = NULL)
+#' @usage ddbiplot(data, classes = NULL, group.aes = NULL, center = TRUE,
+#'                 scaled = c(NULL, "Wasserstein", "Billard"), Title = NULL)
 #' @aliases ddbiplot
 #'
 #' @export
@@ -51,8 +54,9 @@
 #' ddbiplot(data = Oils.data) |> PCA() |> plot()
 #'
 ddbiplot <- function(data, classes = NULL, group.aes = NULL, center = TRUE,
-                   scaled = FALSE, Title = NULL)
+                   scaled = c(NULL, "Wasserstein", "Billard"), Title = NULL)
 {
+    scaled <- match.arg(scaled)
     pp <- length(data)
     if(pp < 2) stop("Not enough variables to construct a biplot \n Consider using data with more columns")
     n <- switch(data[[1]]$type,
@@ -60,13 +64,19 @@ ddbiplot <- function(data, classes = NULL, group.aes = NULL, center = TRUE,
                 interval = nrow(data[[1]]$values),
                 histogram = nrow(data[[1]]$intervals),
                 categorical = length(data[[1]]$values),
-                modal = length(data[[1]]$cats))
+                modal = nrow(data[[1]]$categories))
+    unit.names <- switch(data[[1]]$type,
+                         numeric = names(data[[1]]$values),
+                         interval = rownames(data[[1]]$values),
+                         histogram = rownames(data[[1]]$intervals),
+                         categorical = rownames(data[[1]]$values),
+                         modal = rownames(data[[1]]$categories))
 
     na.vec <- rep (FALSE, n)
     p <- 0
     for (j in 1:pp)
     {
-      if (data[[j]]$type == "numeric") data[[j]] <- num.to.int (data[[j]])
+      if (data[[j]]$type == "numeric") data[[j]] <- num_to_int (data[[j]])
       if (data[[j]]$type == "interval")
       {
          na.vec.j <- stats::na.action(stats::na.omit(data[[j]]$values))
@@ -74,6 +84,20 @@ ddbiplot <- function(data, classes = NULL, group.aes = NULL, center = TRUE,
          else if (!is.null(na.vec.j))  warning(paste(length(na.vec.j), "rows deleted due to missing values for variable", j))
          na.vec[na.vec.j] <- TRUE
          p <- p + 1
+      }
+      if (data[[j]]$type == "histogram")
+      {
+        my.check <- (abs(apply (data[[j]]$proportions, 1, sum, na.rm = TRUE) - 1)<1e-13)
+        if (any(!my.check)) na.vec[!my.check] <- TRUE
+        if (any(!my.check)) warning(paste(sum(!my.check), "rows deleted due to proportions not adding to 1 for variable", j))
+        for (i in 1:nrow(data[[j]]$proportions))
+          if (abs(sum(data[[j]]$proportions[i,1:(length(data[[j]]$intervals[i,!is.na(data[[j]]$intervals[i,])])-1)]) - 1)>1e-13)
+          {
+            na.vec[i] <- TRUE
+            warning (paste("Histogram proportions for", unit.names[i],
+                           "corresponding with NA intervals removed.\n"))
+          }
+        p <- p + 1
       }
     }
     X <- vector ("list", p)
@@ -91,41 +115,65 @@ ddbiplot <- function(data, classes = NULL, group.aes = NULL, center = TRUE,
         j.num <- j.num + 1
         num <- c(num, j)
       }
-      else
+      if (data[[j]]$type == "histogram")
       {
-        Xcat[[j.cat]] <- data[[j]]
+        new.var <- list ("histogram", data[[j]]$intervals[!na.vec,], data[[j]]$proportions[!na.vec,])
+        new.var.names <- c("type","intervals", "proportions")
+        X[[j.num]] <- new.var
+        names(X[[j.num]]) <- new.var.names
+        j.num <- j.num + 1
+        num <- c(num, j)
+      }
+      if (data[[j]]$type != "interval" & data[[j]]$type != "histogram")
+      {
+        if (data[[j]]$type == "categorical")
+          new.var <- list (data[[j]]$type, data[[j]]$categories)
+        else
+          new.var <- list (data[[j]]$type, data[[j]]$categories, data[[j]]$proportions)
+        new.var.names <- names(data[[j]])
+        Xcat[[j.cat]] <- new.var
+        names(Xcat[[j.cat]]) <- new.var.names
         j.cat <- j.cat + 1
       }
     }
     names(X) <- names(data)[num]
     if (p>0) class(X) <- "ddobj" else X <- NULL
+    if (is.null(X))
+    {
+      means <- sd <- n <- p <- NULL
+    }
+    else
+    {
+      if (center) means <- sapply (X, ddmean) else means <- rep(0,p)
+      if (is.null(scaled)) sd <- rep(1,p)
+      else
+      {
+        if (!is.na(pmatch(scaled,"Billard"))) sd <- sqrt(sapply(X, ddvarB))
+        if (!is.na(pmatch(scaled,"Wasserstein"))) sd <- sqrt(diag(ddvarW(X)))
+      }
+
+      for (j in 1:p)
+      {
+        if (X[[j]]$type == "numeric") X[[j]]$values <- (X[[j]]$values - means[j])/sd[j]
+        if (X[[j]]$type == "interval") X[[j]]$values <- (X[[j]]$values - means[j])/sd[j]
+        if (X[[j]]$type == "histogram") X[[j]]$intervals <- (X[[j]]$intervals - means[j])/sd[j]
+      }
+    }
+
     p2 <- pp - p
     if (p2>0) class(Xcat) <- "ddobj" else Xcat <- NULL
 
     if (!is.null(group.aes) & length(na.vec) > 0) group.aes <- group.aes[!na.vec]
 
-    # scaling of numeric data
-    if(p==0)
-    {  means <- NULL
-       sd <- NULL
-       p <- NULL
-       n <- NULL
-    }
-    else
+    if (p > 0)
     {
-      means <- sapply(X, ddmean)
-      sd <- sqrt(diag(WassL2var(X)))
-      if (!center) {  X <- X
-                      means <- rep(0, p)
-                      sd <- rep(1, p)
+      pdfs <- vector ("list", p)
+      for (j in 1:p)
+      {
+        pdfs[[j]] <- vector ("list", n)
+        if (data[[j]]$type == "interval") for (i in 1:n) pdfs[[j]][[i]] <- intpdf (X, i=i, j= j)
+        if (data[[j]]$type == "histogram") for (i in 1:n) pdfs[[j]][[i]] <- histpdf (X, i=i, j=j)
       }
-      else if (scaled)
-           { for (k in 1:p) X[[k]]$values <- (X[[k]]$values-means[k])/sd[k]
-           }
-           else
-           {  for (k in 1:p) X[[k]]$values <- X[[k]]$values-means[k]
-              sd <- rep(1, p)
-           }
     }
 
 #    if(!is.null(Xcat))
@@ -146,8 +194,11 @@ ddbiplot <- function(data, classes = NULL, group.aes = NULL, center = TRUE,
     g.names <-levels(group.aes)
     g <- length(g.names)
 
-    object <- list(X = X, Xcat = Xcat, raw.X = data, classes=classes, na.action=(1:n)[na.vec], center=center, scaled=scaled,
-                   means = means, sd = sd, n=n, p=p, p2=p2, group.aes = group.aes,g.names = g.names,g = g,
+    object <- list(X = X, Xcat = Xcat, raw.X = data, numeric.vars = num, classes=classes,
+                   na.action=(1:n)[na.vec],
+                   center=center, scaled=scaled, means=means, sd=sd,
+                   n=n, p=p, p2=p2,
+                   group.aes = group.aes,g.names = g.names,g = g,
                    Title = Title)
     class(object) <- "ddbiplot"
   object
@@ -209,7 +260,7 @@ prediction <- function (bp, samples = TRUE, type = "intervals")
   {
     vertices.mat <- vector("list", n)
     for (i in 1:n)
-      vertices.mat[[i]] <- create.vertices (bp$X, i)
+      vertices.mat[[i]] <- create_vertices (bp$X, i)
 
     vert.mat.hat <- lapply (vertices.mat, function(x)
                                           x$vertices %*% Vr %*% t(Vr))

@@ -4,8 +4,8 @@
 \alias{ddbiplot}
 \title{First step to create a new biplot with \pkg{biplotEZ}}
 \usage{
-ddbiplot(data, classes = NULL, group.aes = NULL, center = TRUE, scaled = FALSE,
-Title = NULL)
+ddbiplot(data, classes = NULL, group.aes = NULL, center = TRUE,
+                scaled = c(NULL, "Wasserstein", "Billard"), Title = NULL)
 }
 \arguments{
 \item{data}{an object of class \code{ddobj}.}
@@ -17,8 +17,10 @@ Title = NULL)
 \item{center}{a logical value indicating whether \code{data} should be variable centered,
 with default \code{TRUE}.}
 
-\item{scaled}{a logical value indicating whether \code{data} should be standardised to unit
-variable variances, with default \code{FALSE}.}
+\item{scaled}{default \code{NULL} for no scaling of the data. Other options are
+\code{Billard} or \code{Wasserstein} to divide centred quantile functions
+by the squareroot of the variance computed with \code{ddvarB} or
+\code{ddvarW} respectively. Partial matching allowed.}
 
 \item{Title}{the title of the biplot to be rendered, enter text in "  ".}
 }
@@ -28,13 +30,14 @@ A list with the following components is available:
          arguments \code{center} and \code{scaled}.}
 \item{Xcat}{categorical and modal part of the original \code{ddobj}.}
 \item{raw.X}{original \code{ddobj}.}
+\item{numeric.vars}{which of the variables in raw.X are contained in X.}
 \item{classes}{the vector of category levels for the class variable. This is to be used for
                \code{colour}, \code{pch} and \code{cex} specifications.}
 \item{na.action}{the observations that have been removed.}
 \item{center}{a logical value indicating whether centering was applied.}
-\item{scaled}{a logical value indicating whether scaling was applied.}
-\item{means}{the means for each variable.}
-\item{sd}{the standard deviations for each variable.}
+\item{scaled}{one of \code{NULL} or \code{Billard} or \code{Wasserstein}.}
+\item{means}{the vector of means for each numeric, interval or histogram variable.}
+\item{sd}{the vector of standard deviations computed according to the specification in\code{scaled}.}
 \item{n}{the number of observations.}
 \item{p}{the number of variables.}
 \item{group.aes}{the vector of category levels for the grouping variable. This is to be used

@@ -11,6 +11,6 @@ These objects are imported from other packages. Follow the links
 below to see their documentation.
 
 \describe{
-  \item{biplotEZ}{\code{\link[biplotEZ]{PCA}}}
+  \item{biplotEZ}{\code{\link[biplotEZ:PCA]{PCA()}}}
 }}
 

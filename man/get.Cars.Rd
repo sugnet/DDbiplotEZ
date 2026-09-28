@@ -2,21 +2,7 @@
 % Please edit documentation in R/dat.R
 \name{get.Cars}
 \alias{get.Cars}
-\title{Credit card data.}
-\format{
-An object of class \code{ddobj}. A list of length 5:
-\describe{
-  \item{Food}{interval scaled variable}
-  \item{Social}{interval scaled variable}
-  \item{Travel}{interval scaled variable}
-  \item{Gas}{interval scaled variable}
-  \item{Clothes}{numeric variable}
-  }
-
-  "Creditcard.data"
-
-Converts the Cars data set to a ddobj
-}
+\title{Converts the Cars data set to a ddobj}
 \usage{
 get.Cars()
 }
@@ -26,9 +12,6 @@ an object of class \code{ddobj}
 \description{
 Obtain the data set from the package \code{MAINT.Data} and convert is into a \code{ddobj}
 for use in \code{ddbiplot()}.
-}
-\details{
-A data set containing 10 units with five interval scaled variables.
 }
 \examples{
 Cars.data <- get.Cars()

@@ -15,7 +15,8 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  fig.height = 6, fig.width = 7
 )
 ```
 
@@ -25,7 +26,7 @@ library(DDbiplotEZ)
 
 # Distributional data
 
-The function `create.ddobj` creates an object of class `ddobj` from a dataframe. Included in the package is the dataframe `toy.data`.
+The function `create_ddobj` creates an object of class `ddobj` from a dataframe. Included in the package is the dataframe `toy.data`.
 
 ```{r, showData}
 toy.data
@@ -34,13 +35,13 @@ toy.data
 This data set consist of 5 different types of data:
 
 * X1 is a numeric variable.
-* X2 is an interval scaled variable - the endpoints of the intervals are given in the columns `X2` and `X2.up`. The intention is that the lower bounds appear in the first column and the upper bounds in the second. However, the function `create.ddobj` will reorder the values if they appear in the opposite order, such as for units 4 and 5.
+* X2 is an interval scaled variable - the endpoints of the intervals are given in the columns `X2` and `X2.up`. The intention is that the lower bounds appear in the first column and the upper bounds in the second. However, the function `create_ddobj` will reorder the values if they appear in the opposite order, such as for units 4 and 5.
 * X3 is a histogram scaled variable - the first group of columns (`X3`, `X3.I1`, `X3.I2`, `X3.I3`, `X3.I4` in this case) contain the consecutive intervals, while the next group of columns (`X3.p1`, `X3.p2`, `X3.p3`, `X3.p4` for the `toy.data`) contain the proportions. If the number of intervals vary between units, the latter columns of units with fewer intervals should contain `NA`. The number of proportions specified, should agree with the number of intervals and the proportions must add up to 1.
 * X4 is a categorical (factor in `R`) variable.
 * X5 is a modal variable. The format is similar to that of histogram scaled variables where the first group of columns (`X5`, `X5.c2`, `X5.c3` for our example) contains the categories and the latter group the proportions such as `X5.p1`, `X5.p2`, `X5.p3`.
 
 ```{r, createData}
-out <- create.ddobj(toy.data, type=c("numeric","interval","histogram","categorical", "modal"),
+out <- create_ddobj(toy.data, type=c("numeric","interval","histogram","categorical", "modal"),
                     cols = c(1, 2, 4, 13, 14), n.int=4, n.cat=3)
 ```
 
@@ -52,7 +53,7 @@ The print method provides a summary of the `ddobj`.
 print (out)
 ```
 
-The function `suminto.ddobj` is used to summarise a (usually large) data set into a distributional data object. One such large data set is the `diamonds` data in the package `ggplot2`. 
+The function `suminto_ddobj` is used to summarise a (usually large) data set into a distributional data object. One such large data set is the `diamonds` data in the package `ggplot2`. 
 
 ```{r, getDiamonds, echo=FALSE}
 if (!requireNamespace("ggplot2", quietly = TRUE)) {
@@ -62,12 +63,21 @@ if (!requireNamespace("ggplot2", quietly = TRUE)) {
 data("diamonds", package = "ggplot2")
 ```
 
-We can use the color-cut combinations as units, to summarise carat and price as histogram scaled variables, depth and table as interval scaled variables and clarity as a modal variable.
+We can use the color x cut combinations as units, to summarise carat and price as histogram scaled variables, depth and table as interval scaled variables and clarity as a modal variable.
 
 ```{r, showSummarise}
 diamonds
-suminto.ddobj(diamonds, units = c("color","cut"),
+suminto_ddobj(diamonds, units = c("color","cut"),
               histogram = c("carat", "price"), interval = c("depth", "table"), modal = "clarity")
+```
+
+Two functions allows the user to extract a subset of variables and / or units from a `ddobj`.
+
+```{r, extract}
+out
+extractDDvars (out, j=c(1,3:4))
+extractDDunits (out, i=2:3)
+extractDDvars (extractDDunits (out, i=c(2,5)), j=3)
 ```
 
 ## Data sets available in `DDbiplotEZ`
@@ -101,6 +111,15 @@ The `Oils.data` from @Ichino1988 is available as well as the `Creditcard.data`. 
 * `get.soccer.bivar.int()`
 * `get.veterinary.int()`
 
+### Data sets from `HistDAWass`
+
+* `get.Age_Pyramids_2014()`
+* `get.Agronomique()`
+* `get.BLOOD()`
+* `get.BloodBRITO()`
+* `get.China_Month()`
+* `get.China_Seas()`
+* `get.OzoneFull()`
 
 # Descriptive statistics
 
@@ -114,12 +133,14 @@ temp <- cbind (X1 = c(1, 2, 3), X1.b = c(2, 4, 9),
                X4 = c(0, 0, 0), X4.1 = c(1, 1, 1), X4.2 = c(2, 2, 2), X4.3 = c(3, 3, 3),
                X4.p1 = c(0.3, 0.1, 0.7), X4.p2 = c(0.2, 0.6, 0.2), X4.p3 = c(0.5, 0.3, 0.1))
 rownames(temp) <- c("A", "B", "C")
-ex.dat <- create.ddobj(temp, types = c("interval", "interval", "histogram", "histogram"),
+ex.dat <- create_ddobj(temp, types = c("interval", "interval", "histogram", "histogram"),
                              cols  = c(    1,          3,           5,           10), n.int=2:3)
 ex.dat
 ```
 
-## Interval scaled variables
+## Notation
+
+### Interval scaled variables
 
 The following notation will be used:
 
@@ -136,7 +157,130 @@ $$
                           \end{bmatrix}
 $$
 
-The computations for mean, variance and covariance are based on @Billard2008.
+### Histogram scaled variables
+
+The following notation will be used:
+
+$$
+\mathfrak{X}:n \times p = \begin{bmatrix}
+                          \mathfrak{x}_{11} & \dots & \mathfrak{x}_{1p}\\
+                          \vdots   &       & \vdots\\
+                          \mathfrak{x}_{n1} & \dots & \mathfrak{x}_{np}
+                          \end{bmatrix}
+$$
+
+$$
+= \begin{bmatrix}
+                          \begin{bmatrix} x^l_{111}, &x^u_{111} \end{bmatrix},p_{111}; 
+                          \dots 
+                          \begin{bmatrix} x^l_{11s_{11}}, &x^u_{11s_{11}}         \end{bmatrix},p_{11s_{11}} 
+                          & \dots & 
+                          \begin{bmatrix} x^l_{1p1}, &x^u_{1p1} \end{bmatrix},p_{1p1}; 
+                          \dots 
+                          \begin{bmatrix} x^l_{1ps_{1p}}, &x^u_{1ps_{1p}}         \end{bmatrix},p_{1ps_{1p}}\\
+                         \vdots   &       & \vdots\\
+                          \begin{bmatrix} x^l_{n11}, &x^u_{n11} \end{bmatrix},p_{n11}; 
+                          \dots 
+                          \begin{bmatrix} x^l_{n1s_{11}}, &x^u_{n1s_{n1}}         \end{bmatrix},p_{n1s_{n1}} 
+                          & \dots & 
+                          \begin{bmatrix} x^l_{np1}, &x^u_{np1} \end{bmatrix},p_{np1};
+                          \dots 
+                          \begin{bmatrix} x^l_{nps_{n1}}, &x^u_{nps_{n1}}         \end{bmatrix},p_{nps_{np}} 
+                          \end{bmatrix}
+$$
+
+## Distances
+
+To compute pairwise distances between units, the $l_2$ Wasserstein distance is used, as described in @IrpinoVerde2015. The function `sqL2Wass_dist()` computes the squared $l_2$ Wasserstein distance. It makes used of the function `WassSqDistH()` in the R package `HistDAWass` to compute the squared $l_2$ Wasserstein distance between two units on a histogram scaled variable. Interval scaled variables are converted to histogram scaled variables with a single bin and proportion one, while numeric variables are first converted to interval scaled variables with identical lower and upper interval endpoints, before being converted to histogram scaled variables.
+
+Consider each element of $\mathfrak{X}$, $\mathfrak{X}_{ij}$ to have a density function
+
+$$
+\phi_{ij}(x) = \begin{cases}
+  \frac{p_{ijh}}{x^u_{ijh}-x^l_{ijh}} & \text{if } x^l_{ijh} < x < x^u_{ijh} \\
+  0 & \text{otherwise}
+               \end{cases}
+$$
+with associated distribution function
+
+$$
+\Phi_{ij}(x) = \begin{cases}
+  0 & x < x^l_{ij1} \\
+  \sum_{h=0}^{l-1}{p_{ijh}} + \frac{x - x^l_{ijl}}{x^u_{ijl}-x^l_{ijl}} & l=1,\dots,s_i \text{ if } x^l_{ijl} < x < x^u_{ijl} \\
+  1 & x > x^u_{ijs_i}
+               \end{cases}
+$$
+
+with $p_{ij0} = 0$ and quantile function
+
+$$
+\Phi^{-1}_{ij}(t) = x^l_{ij} + (t-\Phi_{ij}(x^l_{ij}))(x^u_{ij} - x^l_{ij})/p_{ijl}, \hspace{1cm} \Phi_{ij}(x^l_{ij}))<t<\Phi_{ij}(x^u_{ij})).
+$$
+
+The squared $l_2$ Wasserstein distance between $\phi_{ij}$ and $\phi_{hj}$ with respectively quantile functions $\Phi^{-1}_{ij}$ and $\Phi^{-1}_{hj}$ is computed as
+
+$$
+d^2_W(\phi_{ij}, \phi_{hj}) = \int_{0}^{1} [\Phi^{-1}_{ij}(t) - \Phi^{-1}_{hj}(t)]^2\,dt
+$$
+
+The squared distances are summed over the $p$ variables, to obtain the squared distance between a pair of units.
+
+```{r, distMatrix}
+Dsq <- sqL2Wass_dist(ex.dat)
+Dmat <- sqrt(Dsq)
+Dmat
+```
+
+## Frechet mean 
+
+Following the discussion of @IrpinoVerde2015 the mean distribution of $n$ distributional units, called the Frechet mean, based on the $l_2$ Wasserstein distance is the distribution associated with the quantile function
+
+$$
+\bar{\Phi}^{-1}(t) = \frac{1}{n} \sum_{i=1}^n{\Phi^{-1}_i(t)}.
+$$
+
+The function `ddQmean` returns this quantile function.
+
+```{r, meanQuantile}
+ddQmean (ex.dat, j=1)(seq(from = 0, to = 1, len=21))
+ddQmean (ex.dat, j=4)(seq(from = 0, to = 1, len=21))
+```
+
+## Variance and covariance based on the Wasserstein distance
+
+@IrpinoVerde2015 propose the following:
+
+$$
+s^2_{j} = \frac{1}{n} \sum_{i=1}^{n}{\int_{0}^{1} [\Phi^{-1}_{ij}(t) - \Phi^{-1}_{j}(t)]^2\,dt}
+$$
+
+and covariance
+
+$$
+s(\mathfrak{X}_j, \mathfrak{X}_k) = \frac{1}{n} \sum_{i=1}^{n}{\int_{0}^{1} [\Phi^{-1}_{ij}(t) - \Phi^{-1}_{j}(t)] [\Phi^{-1}_{ik}(t) - \Phi^{-1}_{k}(t)]\,dt}.
+$$
+
+### The function `ddvarW()`
+
+The function accepts an object of class `ddobj` and computes a variance-covariance matrix. 
+
+```{r, Wasserstein_var}
+ddvarW(ex.dat)
+```
+
+### The function `ddcorW()`
+
+The function uses the variance-covariance matrix produced by `ddvarW()` to divide each covariance by the product of the relevant standard deviations to produce a correlation matrix.
+
+```{r, Wasserstein_cor}
+ddcorW(ex.dat)
+```
+
+# Descriptive statistics (Billard, 2008)
+
+These computations for mean, variance and covariance based on @Billard2008 can also be computed, although it is not used in the biplot computations.
+
+## Interval scaled variables
 
 ### Sample mean
 
@@ -189,7 +333,7 @@ $$
 
 
 ```{r, X2_var, error = FALSE}
-ddvar(ex.dat$X2)
+ddvarB(ex.dat$X2)
 ```
 
 ### Sample covariance
@@ -238,46 +382,13 @@ $$
 $$
 
 ```{r, X1_X2_cov, error = FALSE}
-ddcov(ex.dat$X1, ex.dat$X2)
-ddvar(ex.dat$X1, ex.dat$X2)
+ddcovB(ex.dat$X1, ex.dat$X2)
+ddvarB(ex.dat$X1, ex.dat$X2)
 ```
 
-Calling the `ddvar()` function with two arguments is equivalent to calling the function `ddcov()`.
+Calling the `varB()` function with two arguments is equivalent to calling the function `covB()`.
 
 ## Histogram scaled variables
-
-The following notation will be used:
-
-$$
-\mathfrak{X}:n \times p = \begin{bmatrix}
-                          \mathfrak{x}_{11} & \dots & \mathfrak{x}_{1p}\\
-                          \vdots   &       & \vdots\\
-                          \mathfrak{x}_{n1} & \dots & \mathfrak{x}_{np}
-                          \end{bmatrix}
-$$
-
-$$
-= \begin{bmatrix}
-                          \begin{bmatrix} x^l_{111}, &x^u_{111} \end{bmatrix},p_{111}; 
-                          \dots 
-                          \begin{bmatrix} x^l_{11s_{11}}, &x^u_{11s_{11}}         \end{bmatrix},p_{11s_{11}} 
-                          & \dots & 
-                          \begin{bmatrix} x^l_{1p1}, &x^u_{1p1} \end{bmatrix},p_{1p1}; 
-                          \dots 
-                          \begin{bmatrix} x^l_{1ps_{11}}, &x^u_{1ps_{11}}         \end{bmatrix},p_{1ps_{1p}}\\
-                         \vdots   &       & \vdots\\
-                          \begin{bmatrix} x^l_{n11}, &x^u_{n11} \end{bmatrix},p_{n11}; 
-                          \dots 
-                          \begin{bmatrix} x^l_{n1s_{11}}, &x^u_{n1s_{n1}}         \end{bmatrix},p_{n1s_{n1}} 
-                          & \dots & 
-                          \begin{bmatrix} x^l_{np1}, &x^u_{np1} \end{bmatrix},p_{np1};
-                          \dots 
-                          \begin{bmatrix} x^l_{nps_{n1}}, &x^u_{nps_{n1}}         \end{bmatrix},p_{nps_{np}} 
-                          \end{bmatrix}
-$$
-
-
-The computations for mean, variance and covariance are based on @Billard2008.
 
 ### Sample mean
 
@@ -342,7 +453,7 @@ $$
 $$
 
 ```{r, X3_var}
-ddvar(ex.dat$X3)
+ddvarB(ex.dat$X3)
 ```
 
 ### Sample covariance
@@ -558,113 +669,37 @@ $$
 $$
 
 ```{r, X3_X4_cov}
-ddvar(ex.dat$X3, ex.dat$X4)
+ddvarB(ex.dat$X3, ex.dat$X4)
 ```
 
 The function will also compute the covariance between an interval scaled variable and a histogram scaled variable, by viewing the interval scaled variable as a histogram with a single bin and proportion one.
 
 ```{r, X1_X4_cov}
-ddcov(ex.dat$X1, ex.dat$X4)
+ddcovB(ex.dat$X1, ex.dat$X4)
 ```
 
-Unlike the function `var()` which accepts a matrix of variables to compute a covariance matrix, the `ddvar()` function only computes a single numeric variance or covariance value. The function `ddcovmat()` computes a covariance matrix.
+Unlike the function `var()` which accepts a matrix of variables to compute a covariance matrix, the `varB()` function only computes a single numeric variance or covariance value. The function `covmatB()` computes a covariance matrix.
 
 ```{r, covarianceMatrix}
-ddcovmat(ex.dat)
+ddcovmatB(ex.dat)
 ```
 
-## Correlation
+### Correlation
 
 Once the covariance and variance for interval scaled and histogram scaled variables have been defined, the correlation is computed as usual $cor(x,y) = \frac{cov(x,y)}{s_xs_y}$.
 
 ```{r, correlationMatrix}
-ddcor (ex.dat$X2, ex.dat$X3)
-ddcormat(ex.dat)
-```
-
-# Distances
-
-To compute pairwise distances between units, the $l_2$ Wasserstein distance is used, as described in @IrpinoVerde2015. The function `sq.L2.Wass_dist()` computes the squared $l_2$ Wasserstein distance. It makes used of the function `WassSqDistH()` in the R package `HistDAWass` to compute the squared $l_2$ Wasserstein distance between two units on a histogram scaled variable. Interval scaled variables are converted to histogram scaled variables with a single bin and proportion one, while numeric variables are first converted to interval scaled variables with identical lower and upper interval endpoints, before being converted to histogram scaled variables.
-
-Consider each element of $\mathfrak{X}$, $\mathfrak{X}_{ij}$ to have a density function
-
-$$
-\phi_{ij}(x) = \begin{cases}
-  \frac{p_{ijh}}{x^u_{ijh}-x^l_{ijh}} & \text{if } x^l_{ijh} < x < x^u_{ijh} \\
-  0 & \text{otherwise}
-               \end{cases}
-$$
-with associated distribution function
-
-$$
-\Phi_{ij}(x) = \begin{cases}
-  0 & x < x^l_{ij1} \\
-  \sum_{h=0}^{l-1}{p_{ijh}} + \frac{x - x^l_{ijl}}{x^u_{ijl}-x^l_{ijl}} & l=1,\dots,s_i \text{ if } x^l_{ijl} < x < x^u_{ijl} \\
-  1 & x > x^u_{ijs_i}
-               \end{cases}
-$$
-
-with $p_{ij0} = 0$ and quantile function
-
-$$
-\Phi^{-1}_{ij}(t) = x^l_{ij} + (t-\Phi_{ij}(x^l_{ij}))(x^u_{ij} - x^l_{ij})/p_{ijl}, \hspace{1cm} \Phi_{ij}(x^l_{ij}))<t<\Phi_{ij}(x^u_{ij})).
-$$
-
-The squared $L_2$ Wasserstein distance between $\phi_{ij}$ and $\phi_{hj}$ with respectively quantile functions $\Phi^{-1}_{ij}$ and $\Phi^{-1}_{hj}$ is computed as
-
-$$
-d^2_W(\phi_{ij}, \phi_{hj}) = \int_{0}^{1} [\Phi^{-1}_{ij}(t) - \Phi^{-1}_{hj}(t)]^2\,dt
-$$
-
-The squared distances are summed over the $p$ variables, to obtain the squared distance between a pair of units.
-
-```{r, distMatrix}
-Dsq <- sq.L2.Wass_dist(ex.dat)
-Dmat <- sqrt(Dsq)
-Dmat
-```
-
-## Variance and covariance based on the Wasserstein distance
-
-@IrpinoVerde2015 propose basic statistics for considering the mean of histogram scaled data as a distribution and the vriability as a measure of the observed data with respect to a distribution-valued mean description.
-
-Let $\phi_j(t) = \frac{1}{n} \sum_{i=1}^{n}{\phi_{ij}(t)}$ then the variance is defined as
-
-$$
-s^2_{Wj} = \frac{1}{n} \sum_{i=1}^{n}{\int_{0}^{1} [\Phi^{-1}_{ij}(t) - \Phi^{-1}_{j}(t)]^2\,dt}
-$$
-
-and covariance
-
-$$
-s_W(\mathfrak{X}_j, \mathfrak{X}_k) = \frac{1}{n} \sum_{i=1}^{n}{\int_{0}^{1} [\Phi^{-1}_{ij}(t) - \Phi^{-1}_{j}(t)] [\Phi^{-1}_{ik}(t) - \Phi^{-1}_{k}(t)]\,dt}.
-$$
-
-### The function `WassL2var()`
-
-The function accepts an object of class `ddobj` and computes a variance-covariance matrix using the function `WH.var.covar()` from package `HistDAWass`.
-
-```{r, Wasserstein_var}
-WassL2var(ex.dat)
-```
-
-### The function `WassL2cor()`
-
-The function uses the variance-covariance matrix produced by `WassL2var()` to divide each covariance by the product of the relevant standard deviations to produce a correlation matrix.
-
-```{r, Wasserstein_cor}
-WassL2cor(ex.dat)
+ddcorB (ex.dat$X2, ex.dat$X3)
+ddcormatB(ex.dat)
 ```
 
 # The function `ddbiplot()`
 
 This function creates an object of class `ddbiplot`. The input is a `ddobj` with a series of optional arguments for grouping units, centering and scaling as well as providing a title for the plot.
 
-The function prepares the `ddobj` for creating biplots. The numeric part with `numeric`, `interval` and `histogram` variables are returned in a component `X` with the required centring and scaling performed. If there are missing observations, these are removed unit-wise with a warning to the user while the numbers of the units removed $(1, \dots, n)$ is returned in the `na.action` component.
+The function prepares the `ddobj` for creating biplots. The numeric part with `numeric`, `interval` and `histogram` variables are returned in a component `X`. If there are missing observations, these are removed unit-wise with a warning to the user while the numbers of the units removed $(1, \dots, n)$ is returned in the `na.action` component.
 
 # PCA biplots
-
-## PCA biplots for interval scaled data
 
 The Oils data set (@Ichino1988) on $n=8$ units for 4 interval scaled and 1 numeric variable is included in the `DDbiplotEZ` package. 
 
@@ -674,55 +709,51 @@ Oils.data
 
 When the function `PCA()` is called, the numeric variable is converted to an interval scaled variable with $x^l_i = x^u_i$ so that $p=5$ variables are represented.
 
-### PCA biplot with interval scaled data represented as intervals
-
-In the PCA biplot, each unit is represented by $p$ intervals, one for each of the original interval scaled variables. Note that short intervals appear as 'dots' in the centroid of the unit representation.
-
-```{r, PCA_Oils_intervals, fig.height=6, fig.width=7}
-ddbiplot(Oils.data, scaled = TRUE) |> PCA() |> biplotEZ::axes (label.dir = "Hor") |>
-  plot (type = "intervals")
+```{r, PCA_Oils}
+ddbiplot (Oils.data, scaled = "W") |>
+  PCA () |> plot ()
 ```
 
-### PCA biplot with interval scaled data represented as vertices
+The BLOOD data set (@BillardDiday2006) can be obtained from the `HistDAWass` package with the function `get.BLOOD()`. It contains $n=14$ units and $p=3$ histogram scaled variables.
 
-An alternative representation of an unit in the lower dimensional biplot space is obtained by first creating a $2^p \times p$ vertices matrix for each unit. The entire $2^pn \times p$ matrix is projected onto the biplot space. A single unit is either represented by connecting lines which formed the $p$-dimensional hypercube in the original space, or a convex hull around the vertices of each unit.
+```{r, showBLOOD}
+BLOOD.data <- get.BLOOD()
+BLOOD.data
+```
 
-```{r, PCA_Oils_vertices, fig.height=6, fig.width=7}
-ddbiplot (Oils.data, scale = TRUE) |> PCA() |> biplotEZ::axes (label.dir = "Hor") |>
-  vertices (type = "connect") |> plot (type = "vertices")
-ddbiplot (Oils.data, scaled = TRUE) |> PCA() |> biplotEZ::axes (label.dir = "Hor") |>
-  plot (type = "vertices")
+```{r, PCA_BLOOD}
+blood.data <- get.BLOOD()
+ddbiplot (blood.data, scaled = "W") |>
+  PCA () |> plot ()
 ```
 
 ### Aesthetics of the units in the PCA biplot
 
-The functions `intervals()` and `vertices()` allow the user to choose the aesthetics for the units in the PCA biplot. The following options are available:
+The function `units()` allows the user to choose the aesthetics for the units in the PCA biplot. The following options are available:
 
 * `which` of the groups defined by `classes` or `group.aes` in `PCA()` to show in the biplot.
 * `col` the colour for representing units.
-* `pch` [only for `vertices()`] the plotting character for representing vertices.
-* `cex` [only for `vertices()`] the character expansion of the vertices plotting character.
-* `lwd` the line width for interval representation / convex hull / connecting lines.
-* `lty` the line type for interval representation / convex hull / connecting lines.
 * `label` whether the units should be labelled.
 * `label.name` names for the units.
 * `label.col` colour for unit labels.
 * `label.cex` character expansion for unit labels.
 * `label.side` one of `bottom`, `left`, `top` or `right` for placing the unit labels.
 * `label.offset` how far away the units labels should be positioned.
-* `type` either `"convexhull"` or `"connect"`.
 
-The arguments `col`, `pch`, `cex`, `lwd` and `lty` are typically vectors with length equal to the number of groups specified. The argument `label` is a single `TRUE` or `FALSE` while the other arguments related to the labels are typically vectors of length $n$. For all these vectors recycling is used to ensure the correct length.
+The argument `col` is typically a vector with length equal to the number of groups specified. The argument `label` is a single `TRUE` or `FALSE` while the other arguments related to the labels are typically vectors of length $n$. For all these vectors recycling is used to ensure the correct length.
 
-```{r, PCAint_aesthetics, fig.height=6, fig.width=7}
-ddbiplot(Oils.data, scaled = TRUE) |> PCA(group.aes = c(1,1,1,1,2,2,2,2)) |>
-  biplotEZ::axes (label.dir = "Hor") |>
-  intervals(col = c("cyan","magenta"), label = TRUE) |> plot (type = "intervals")
-ddbiplot (Oils.data, scaled = TRUE) |> PCA() |> biplotEZ::axes (label.dir = "Hor") |>
-  vertices (type = "connect", lty = 2) |> plot (type = "vertices")
-ddbiplot (Oils.data, scaled = TRUE) |> PCA() |> biplotEZ::axes (label.dir = "Hor") |>
-  vertices (pch=15, cex=0.6, label = TRUE, label.side = "right") |>
-  plot (type = "vertices")
+```{r, PCAint_aesthetics}
+ddbiplot (Oils.data, scaled = "W") |>
+  units (label = TRUE, 
+         label.side = c("bottom","bottom","right","top","bottom","bottom",
+                        "bottom","top")) |>
+  PCA () |> plot ()
+
+ddbiplot (blood.data, scaled = "W", group.aes=1:14) |>
+  units (col = c("red","blue","darkgreen","purple","orange","gold","tan4",
+                 "magenta","grey","cyan","coral","springgreen3","lightslateblue",
+                 "mediumvioletred")) |>
+  PCA () |> plot ()
 ```
 
 ### More aesthetics from package `biplotEZ`
@@ -730,12 +761,15 @@ ddbiplot (Oils.data, scaled = TRUE) |> PCA() |> biplotEZ::axes (label.dir = "Hor
 The aesthetics of the biplot axes are set with the function `axes()` from `biplotEZ`. Similarly a legend is added with the `legend.type(samples = TRUE)` function.
 
 ```{r, PCAint_more_aes, fig.height=6, fig.width=7}
-ddbiplot (Oils.data, scaled = TRUE) |> 
-  PCA(group.aes = c("Linseed", "Perilla", "Cotton", "Sesame", "Cmellia", "Olive",
-                    "Beef", "Hog")) |> 
-  biplotEZ::axes (label.dir = "Hor") |>  
-  vertices (type = "connect") |>
-  biplotEZ::legend.type (samples = TRUE) |> plot ()
+ddbiplot (blood.data, scaled = "W", group.aes=1:14) |>
+  units (col = c("red","blue","darkgreen","purple","orange","gold","tan4",
+                 "magenta","grey","cyan","coral","springgreen3","lightslateblue",
+                 "mediumvioletred")) |>
+  PCA () |> 
+  legend.type (samples = TRUE, new = TRUE) |>
+  plot ()
 ```
+
+
 
 # References
