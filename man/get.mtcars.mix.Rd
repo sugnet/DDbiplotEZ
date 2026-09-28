@@ -14,6 +14,6 @@ Obtain the data set from the package \code{dataSDA} and convert is into a \code{
 for use in \code{ddbiplot()}.
 }
 \examples{
-mtcars.data <- get.mtars.mix()
+mtcars.data <- get.mtcars.mix()
 
 }

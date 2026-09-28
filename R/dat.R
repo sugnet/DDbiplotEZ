@@ -2873,7 +2873,7 @@ get.lynne1.int <- function ()
 #' for use in \code{ddbiplot()}.
 #'
 #' @examples
-#' mtcars.data <- get.mtars.mix()
+#' mtcars.data <- get.mtcars.mix()
 #'
 get.mtcars.mix <- function ()
 {
